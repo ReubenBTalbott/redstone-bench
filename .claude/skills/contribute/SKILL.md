@@ -30,6 +30,9 @@ actually use it. `bench/run.py` has three runners to copy from:
   web and MCP tools denied in a fresh `cli-config.json`.
 - **Antigravity** (`agy`): a fresh HOME per run, a `sandbox-exec` profile hiding the rest of the disk, a tool deny
   list for web/browser/MCP/sub-agents, and an audit of every shell command for network words.
+- **Muse** (`muse exec`): a fresh HOME per run (sign-in copied in, `Library` linked for the Keychain secret),
+  Muse's own sandbox with shell network restricted (a `sandbox-exec` wrapper cannot nest), web tools and
+  reminder agents off, and the same shell-command audit as Antigravity.
 
 A new runner must:
 

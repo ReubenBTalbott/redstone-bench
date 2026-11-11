@@ -72,7 +72,7 @@ def kill_strays():
         try:
             pid = int(f.read_text())
             cmd = subprocess.run(["ps", "-o", "command=", "-p", str(pid)], capture_output=True, text=True).stdout
-            if ("bench/run.py" in cmd or "codex" in cmd or "agy" in cmd or "cursor-agent" in cmd) and not (f.parent / "result.json").exists():
+            if ("bench/run.py" in cmd or "codex" in cmd or "agy" in cmd or "cursor-agent" in cmd or "muse exec" in cmd) and not (f.parent / "result.json").exists():
                 os.killpg(pid, signal.SIGKILL)
         except (ValueError, ProcessLookupError, PermissionError, OSError):
             pass
