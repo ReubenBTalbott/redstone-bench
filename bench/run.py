@@ -54,8 +54,11 @@ def agy_setup(tag, ws, links=AGY_LINKS):
     prof.write_text(f'''(version 1)
 (allow default)
 (deny file-read* (subpath "{real}") (subpath "{WORK}") (subpath "{AGY_HOMES}"))
-(allow file-read-metadata (subpath "{real}"))
+(allow file-read-metadata (subpath "{real}") (subpath "{WORK}") (subpath "{AGY_HOMES}"))
 (allow file-read* (subpath "{real}/Library") (subpath "{real}/.local") {lit} (subpath "{home}") (subpath "{ws}"))
+(deny file-write* (subpath "{real}") (subpath "{WORK}") (subpath "{AGY_HOMES}"))
+(allow file-write* (subpath "{home}") (subpath "{ws}") (subpath "{real}/Library/Caches") (subpath "{real}/Library/Logs")
+  (subpath "{real}/Library/Application Support") (subpath "{real}/.local/share"))
 ''')
     return home, prof
 
