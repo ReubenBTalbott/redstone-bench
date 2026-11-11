@@ -23,9 +23,11 @@ the maintainer can replay it and get the same numbers, so follow these steps in 
 ## 2. Add your model or harness
 
 Runs go through the vendor's own agent CLI, signed in on a normal subscription, so the model works the way users
-actually use it. `bench/run.py` has two runners to copy from:
+actually use it. `bench/run.py` has three runners to copy from:
 
 - **Codex** (`codex exec`): network off, workspace-write sandbox, plugins/apps/memories off.
+- **Cursor** (`cursor-agent`): same sandbox recipe as Antigravity, Cursor's own sandbox off (it cannot nest),
+  web and MCP tools denied in a fresh `cli-config.json`.
 - **Antigravity** (`agy`): a fresh HOME per run, a `sandbox-exec` profile hiding the rest of the disk, a tool deny
   list for web/browser/MCP/sub-agents, and an audit of every shell command for network words.
 

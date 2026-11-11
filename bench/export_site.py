@@ -28,7 +28,7 @@ BLURB = {
     "time_clock120": "The lamp turns on once every 120 ticks, exactly.",
     "time_pulse30": "The lamp lights for exactly 30 ticks, once.",
 }
-MODELS = {"sol": "GPT-6.1 Sol", "terra": "GPT-6.1 Terra", "astra": "GPT-6 Astra", "luna": "GPT-6 Luna", "carbon": "Gemini 4 Carbon"}
+MODELS = {"sol": "GPT-6.1 Sol", "terra": "GPT-6.1 Terra", "astra": "GPT-6 Astra", "luna": "GPT-6 Luna", "carbon": "Gemini 4 Carbon", "grok": "Grok 4.7"}
 EFFORTS = ["low", "medium", "high", "xhigh", "max", "ultra"]
 
 

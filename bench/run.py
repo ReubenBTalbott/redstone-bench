@@ -21,8 +21,9 @@ from verify import verify
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 MODELS = {"sol": "gpt-6.1-sol", "terra": "gpt-6.1-terra", "astra": "gpt-6-astra", "luna": "gpt-6-luna",
-          "carbon": "gemini-4-carbon"}
+          "carbon": "gemini-4-carbon", "grok": "grok-4.7"}
 AGY = {"carbon"}                       # these run through the Antigravity CLI (agy) instead of Codex
+CURSOR = {"grok"}                      # these run through the Cursor CLI (cursor-agent)
 AGY_HOMES = pathlib.Path("/private/tmp/rsb-agy-homes")
 AGY_LINKS = ["antigravity-cli/antigravity-oauth-token", "antigravity-cli/installation_id", "oauth_creds.json",
              "google_accounts.json", "installation_id"]
@@ -39,16 +40,16 @@ AGY_DENY = ["search_web", "read_url_content", "open_browser_url", "read_browser_
 NETWORK_WORDS = ("curl ", "wget ", "http://", "https://", "pip install", "pip3 install", "git clone", "npm i", "urllib", "requests.")
 
 
-def agy_setup(tag, ws):
+def agy_setup(tag, ws, links=AGY_LINKS):
     """A fresh HOME (keeps Adam's Gemini skills and memories out; the Library link avoids a Keychain dialog) and a
     macOS sandbox profile that hides his home folder, this repo and the other runs' workspaces from the agent."""
     home = AGY_HOMES / tag
     (home / ".gemini/antigravity-cli").mkdir(parents=True, exist_ok=True)
     real = pathlib.Path.home()
-    for rel, src in [("Library", real / "Library")] + [(f".gemini/{f}", real / ".gemini" / f) for f in AGY_LINKS]:
+    for rel, src in [("Library", real / "Library")] + [(f".gemini/{f}", real / ".gemini" / f) for f in links]:
         if src.exists() and not (home / rel).is_symlink():
             os.symlink(src, home / rel)
-    lit = " ".join(f'(literal "{real}/.gemini/{f}")' for f in AGY_LINKS)
+    lit = " ".join(f'(literal "{real}/.gemini/{f}")' for f in links)
     prof = home / "sandbox.sb"
     prof.write_text(f'''(version 1)
 (allow default)
@@ -83,6 +84,25 @@ def agy_events(d, t):
             return "done", {"usage": usage, "final": r.get("response") or ""}
         return "error", {"text": json.dumps(r)[:600]}
     return None, None
+def cursor_events(d, t):
+    """Cursor's stream-json as the same (kind, payload) the other runners give."""
+    if d.get("type") == "tool_call" and d.get("subtype") == "completed":
+        tc = d.get("tool_call") or {}
+        name = next(iter(tc), "tool")
+        v = tc.get(name) or {}
+        args = v.get("args") or {}
+        cmd = args.get("command") or f"[{name}] " + json.dumps(args)[:200]
+        return "command", {"command": str(cmd), "tool": name, "output": json.dumps(v.get("result", ""))[:300]}
+    if d.get("type") == "result":
+        u = d.get("usage") or {}
+        usage = {"input_tokens": u.get("inputTokens"), "cached_input_tokens": u.get("cacheReadTokens"),
+                 "output_tokens": u.get("outputTokens")}
+        if d.get("is_error") or d.get("subtype") != "success":
+            return "error", {"text": json.dumps(d)[:600]}
+        return "done", {"usage": usage, "final": d.get("result") or ""}
+    return None, None
+
+
 PRIVATE = pathlib.Path.home() / ".cache/redstone-bench"   # 0700, not a shared temp dir
 CODEX_HOME, AGENT_HOME = PRIVATE / "codex-home", PRIVATE / "home"
 WORK = pathlib.Path("/private/tmp/rsb-work")
@@ -457,6 +477,9 @@ def main():
         os.symlink(pathlib.Path.home() / ".codex/auth.json", CODEX_HOME / "auth.json")
     env = {"PATH": os.environ["PATH"], "HOME": str(AGENT_HOME), "CODEX_HOME": str(CODEX_HOME), "LANG": "en_US.UTF-8"}
     agy = a.model in AGY
+    cur = a.model in CURSOR
+    sx = agy or cur                      # sandboxed runners with a translated event stream
+    events = agy_events if agy else cursor_events
     argv = ["codex", "exec", "-m", MODELS[a.model], "-c", f'model_reasoning_effort="{a.effort}"',
             "-c", 'web_search="disabled"', "-c", 'approval_policy="never"',
             *[x for f in ("plugins", "apps", "memories", "image_generation") for x in ("--disable", f)],
@@ -469,6 +492,17 @@ def main():
                 "Read TASK.md in this folder and do the task.", "--model", f"{MODELS[a.model]}-{a.effort}", "--effort", a.effort,
                 "--dangerously-skip-permissions", "--disable-slash-commands", "--output-format", "stream-json",
                 "--print-timeout", f"{int(a.minutes * 60) + 120}s", "--settings", json.dumps({"permissions": {"deny": AGY_DENY}})]
+    if cur:
+        # a fresh HOME (no Cursor rules, skills or MCP servers; the Library link keeps the keychain sign-in), the same
+        # macOS sandbox profile as agy, Cursor's own sandbox off (it cannot nest), web tools denied, commands audited
+        home, prof = agy_setup(f"{cfg}__{name}", ws, links=[])
+        (home / ".cursor").mkdir(exist_ok=True)
+        (home / ".cursor/cli-config.json").write_text(json.dumps({"version": 1, "permissions": {
+            "allow": ["Shell(*)", "Read(**)", "Write(**)"], "deny": ["WebFetch(*)", "WebSearch(*)", "Mcp(*:*)"]}}))
+        env = {"PATH": os.environ["PATH"], "HOME": str(home), "LANG": "en_US.UTF-8"}
+        argv = ["sandbox-exec", "-f", str(prof), str(pathlib.Path.home() / ".local/bin/cursor-agent"), "-p",
+                "--model", f"{MODELS[a.model]}-{a.effort}", "--output-format", "stream-json", "--force", "--trust",
+                "--sandbox", "disabled", "--workspace", str(ws), "Read TASK.md in this folder and do the task."]
     t0, started = time.time(), time.strftime("%Y-%m-%dT%H:%M:%S%z")
     threading.Thread(target=serve, daemon=True).start()
     def pump(proc):
@@ -482,8 +516,8 @@ def main():
                     d = json.loads(line)
                 except ValueError:
                     continue
-                if agy:
-                    k, x = agy_events(d, t)
+                if sx:
+                    k, x = events(d, t)
                     if k == "command":
                         state["commands"] += 1
                         state["timeline"].append({"t": t, "kind": "command_execution", "step": state["commands"], "command": x["command"][:240], "tool": x["tool"]})
@@ -527,8 +561,8 @@ def main():
             d = json.loads(line)
         except ValueError:
             continue
-        if agy:
-            k, x = agy_events(d, 0)
+        if sx:
+            k, x = events(d, 0)
             if k == "done":
                 usage, final = x["usage"], x["final"]
             elif k == "command":
@@ -548,7 +582,7 @@ def main():
             if any(x in c for x in ("/Users/", "~/", ".codex", "redstone-bench", "redstonepedia")):
                 outside.append(c[:300])
     (out / "timeline.json").write_text(json.dumps(state["timeline"]))
-    if agy:
+    if sx:
         agy_drop(home)
     if agy and "blocked by Gemini's filters" in final:     # the provider cut the run off; not a model result
         state["fault"] = "provider safety filter ended the run"
@@ -582,7 +616,8 @@ def main():
               "beat_seed": bool(seed and best and key(best) < key(seed)),
               "attempt_log": log, "usage": usage, "shell_commands": commands, "cli_errors": state["errors"][-5:], "commands_touching_outside": outside,
               "final_message": final[-2000:],
-              "harness": {"cli": "agy " + sh(str(pathlib.Path.home() / ".local/bin/agy"), "--version") if agy else sh("codex", "--version"), "git": sh("git", "rev-parse", "--short", "HEAD"),
+              "harness": {"cli": "agy " + sh(str(pathlib.Path.home() / ".local/bin/agy"), "--version") if agy else
+                          "cursor-agent " + sh(str(pathlib.Path.home() / ".local/bin/cursor-agent"), "--version") if cur else sh("codex", "--version"), "git": sh("git", "rev-parse", "--short", "HEAD"),
                           "git_dirty": bool(sh("git", "status", "--porcelain", "bench", "tasks")), "minecraft": "26.3 vanilla"}}
     if best:
         shutil.copy(out / "attempts" / f"{best['attempt']:03d}.json", out / "best.json")
