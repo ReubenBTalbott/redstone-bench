@@ -1,0 +1,254 @@
+{
+ "id": "logic_full_adder",
+ "kind": "circuit",
+ "family": "logic",
+ "title": "Full adder",
+ "max_box": [
+  20,
+  12,
+  20
+ ],
+ "inputs": [
+  "A",
+  "B",
+  "C"
+ ],
+ "outputs": [
+  "S",
+  "K"
+ ],
+ "timeout_ticks": 100,
+ "desc": "Add the three input bits. S is the sum bit (on when one or three inputs are on). K is the carry bit (on when two or three inputs are on).\n\nTruth table:\n\n    A B C | S K\n    0 0 0 | 0 0\n    0 0 1 | 1 0\n    0 1 0 | 1 0\n    0 1 1 | 0 1\n    1 0 0 | 1 0\n    1 0 1 | 0 1\n    1 1 0 | 0 1\n    1 1 1 | 1 1",
+ "test": {
+  "type": "script",
+  "script": [
+   {
+    "set": {},
+    "expect": {
+     "S": 0,
+     "K": 0
+    }
+   },
+   {
+    "set": {
+     "C": 1
+    },
+    "expect": {
+     "S": 1,
+     "K": 0
+    }
+   },
+   {
+    "set": {
+     "B": 1
+    },
+    "expect": {
+     "S": 0,
+     "K": 1
+    }
+   },
+   {
+    "set": {
+     "C": 0
+    },
+    "expect": {
+     "S": 1,
+     "K": 0
+    }
+   },
+   {
+    "set": {
+     "A": 1
+    },
+    "expect": {
+     "S": 0,
+     "K": 1
+    }
+   },
+   {
+    "set": {
+     "C": 1
+    },
+    "expect": {
+     "S": 1,
+     "K": 1
+    }
+   },
+   {
+    "set": {
+     "B": 0
+    },
+    "expect": {
+     "S": 0,
+     "K": 1
+    }
+   },
+   {
+    "set": {
+     "C": 0
+    },
+    "expect": {
+     "S": 1,
+     "K": 0
+    }
+   },
+   {
+    "set": {
+     "C": 1
+    },
+    "expect": {
+     "S": 0,
+     "K": 1
+    }
+   },
+   {
+    "set": {
+     "A": 0,
+     "B": 1,
+     "C": 0
+    },
+    "expect": {
+     "S": 1,
+     "K": 0
+    }
+   },
+   {
+    "set": {
+     "A": 1
+    },
+    "expect": {
+     "S": 0,
+     "K": 1
+    }
+   },
+   {
+    "set": {
+     "A": 0,
+     "B": 0
+    },
+    "expect": {
+     "S": 0,
+     "K": 0
+    }
+   },
+   {
+    "set": {
+     "C": 1
+    },
+    "expect": {
+     "S": 1,
+     "K": 0
+    }
+   },
+   {
+    "set": {
+     "A": 1
+    },
+    "expect": {
+     "S": 0,
+     "K": 1
+    }
+   },
+   {
+    "set": {
+     "A": 0,
+     "C": 0
+    },
+    "expect": {
+     "S": 0,
+     "K": 0
+    }
+   },
+   {
+    "set": {
+     "B": 1,
+     "C": 1
+    },
+    "expect": {
+     "S": 0,
+     "K": 1
+    }
+   },
+   {
+    "set": {
+     "B": 0,
+     "C": 0
+    },
+    "expect": {
+     "S": 0,
+     "K": 0
+    }
+   },
+   {
+    "set": {
+     "C": 1
+    },
+    "expect": {
+     "S": 1,
+     "K": 0
+    }
+   },
+   {
+    "set": {
+     "A": 1,
+     "B": 1,
+     "C": 0
+    },
+    "expect": {
+     "S": 0,
+     "K": 1
+    }
+   },
+   {
+    "set": {
+     "A": 0,
+     "B": 0,
+     "C": 1
+    },
+    "expect": {
+     "S": 1,
+     "K": 0
+    }
+   },
+   {
+    "set": {
+     "B": 1
+    },
+    "expect": {
+     "S": 0,
+     "K": 1
+    }
+   },
+   {
+    "set": {
+     "B": 0
+    },
+    "expect": {
+     "S": 1,
+     "K": 0
+    }
+   },
+   {
+    "set": {
+     "A": 1,
+     "B": 1,
+     "C": 0
+    },
+    "expect": {
+     "S": 0,
+     "K": 1
+    }
+   },
+   {
+    "set": {
+     "A": 0,
+     "B": 0
+    },
+    "expect": {
+     "S": 0,
+     "K": 0
+    }
+   }
+  ]
+ }
+}

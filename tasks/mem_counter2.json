@@ -1,0 +1,212 @@
+{
+ "id": "mem_counter2",
+ "kind": "circuit",
+ "family": "memory",
+ "title": "2-bit counter",
+ "max_box": [
+  24,
+  12,
+  24
+ ],
+ "inputs": [
+  "C"
+ ],
+ "outputs": [
+  "Q1",
+  "Q0"
+ ],
+ "timeout_ticks": 150,
+ "desc": "Q1 Q0 is a 2-bit binary number (Q1 is the high bit) that starts at 0. Every time lever C is switched on, the number goes up by one: 0, 1, 2, 3, then back to 0. Switching C off changes nothing.",
+ "test": {
+  "type": "script",
+  "script": [
+   {
+    "set": {},
+    "expect": {
+     "Q1": 0,
+     "Q0": 0
+    }
+   },
+   {
+    "set": {
+     "C": 1
+    },
+    "expect": {
+     "Q1": 0,
+     "Q0": 1
+    },
+    "hold": 20
+   },
+   {
+    "set": {
+     "C": 0
+    },
+    "expect": {
+     "Q1": 0,
+     "Q0": 1
+    },
+    "hold": 40
+   },
+   {
+    "set": {
+     "C": 1
+    },
+    "expect": {
+     "Q1": 1,
+     "Q0": 0
+    },
+    "hold": 40
+   },
+   {
+    "set": {
+     "C": 0
+    },
+    "expect": {
+     "Q1": 1,
+     "Q0": 0
+    },
+    "hold": 20
+   },
+   {
+    "set": {
+     "C": 1
+    },
+    "expect": {
+     "Q1": 1,
+     "Q0": 1
+    },
+    "hold": 20
+   },
+   {
+    "set": {
+     "C": 0
+    },
+    "expect": {
+     "Q1": 1,
+     "Q0": 1
+    },
+    "hold": 60
+   },
+   {
+    "set": {
+     "C": 1
+    },
+    "expect": {
+     "Q1": 0,
+     "Q0": 0
+    },
+    "hold": 60
+   },
+   {
+    "set": {
+     "C": 0
+    },
+    "expect": {
+     "Q1": 0,
+     "Q0": 0
+    },
+    "hold": 20
+   },
+   {
+    "set": {
+     "C": 1
+    },
+    "expect": {
+     "Q1": 0,
+     "Q0": 1
+    },
+    "hold": 20
+   },
+   {
+    "set": {
+     "C": 0
+    },
+    "expect": {
+     "Q1": 0,
+     "Q0": 1
+    },
+    "hold": 40
+   },
+   {
+    "set": {
+     "C": 1
+    },
+    "expect": {
+     "Q1": 1,
+     "Q0": 0
+    },
+    "hold": 40
+   },
+   {
+    "set": {
+     "C": 0
+    },
+    "expect": {
+     "Q1": 1,
+     "Q0": 0
+    },
+    "hold": 20
+   },
+   {
+    "set": {
+     "C": 1
+    },
+    "expect": {
+     "Q1": 1,
+     "Q0": 1
+    },
+    "hold": 20
+   },
+   {
+    "set": {
+     "C": 0
+    },
+    "expect": {
+     "Q1": 1,
+     "Q0": 1
+    },
+    "hold": 60
+   },
+   {
+    "set": {
+     "C": 1
+    },
+    "expect": {
+     "Q1": 0,
+     "Q0": 0
+    },
+    "hold": 60
+   },
+   {
+    "set": {
+     "C": 0
+    },
+    "expect": {
+     "Q1": 0,
+     "Q0": 0
+    },
+    "hold": 20
+   },
+   {
+    "set": {
+     "C": 1
+    },
+    "expect": {
+     "Q1": 0,
+     "Q0": 1
+    },
+    "hold": 20
+   },
+   {
+    "set": {
+     "C": 0
+    },
+    "expect": {
+     "Q1": 0,
+     "Q0": 1
+    },
+    "hold": 40
+   }
+  ]
+ }
+}

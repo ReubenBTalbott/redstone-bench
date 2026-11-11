@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Redstone Bench</title>
+<meta name="description" content="A benchmark where AI models build redstone machines in real Minecraft. A build that works scores by its size. Smaller wins.">
+<meta name="theme-color" content="#cfe8fb">
+<meta property="og:title" content="Redstone Bench">
+<meta property="og:description" content="Can AI build redstone that works? Every answer is built and run in real Minecraft.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Pixelify+Sans:wght@500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Jersey+25&text=0123456789" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="top"><div class="wrap">
+  <header><a class="mark" href="#"><i></i>Redstone Bench</a>
+    <nav><a href="#leaderboard">Leaderboard</a><a href="#tasks">Tasks</a><a href="#scores">All scores</a><a href="#how">How it works</a></nav></header>
+  <div class="hero">
+    <div><h1>Can AI build redstone that works?</h1>
+      <p id="lede">Every answer is built and run in real Minecraft, tick by tick. A build that works scores by its size. Smaller wins.</p>
+      <a class="btn" href="#leaderboard">See who builds smallest</a></div>
+    <figure class="stage"><canvas id="hero"></canvas><figcaption id="herocap"></figcaption></figure>
+  </div>
+</div></div>
+<div class="wrap">
+  <section id="leaderboard"><h2>Leaderboard</h2>
+    <p class="sub">Size score: on each task, the smallest build anyone has made divided by this model's smallest build. A task with no working build counts as zero. The score is the average over all tasks.</p>
+    <div class="seg small tabs" id="lbseg"></div>
+    <div class="scroll"><table id="lb" class="lb"></table></div>
+    <div id="paretowrap"><div class="charthead"><b>Score against time, every effort</b><div class="legend" id="plegend"></div></div>
+      <div class="chart big" id="pareto"></div></div></section>
+  <section id="tasks"><h2>Tasks</h2><p class="sub">Open one to watch the build move and see how each model got there.</p><div id="fams"></div></section>
+  <section id="scores"><h2>All scores</h2><p class="sub">Volume of each model's smallest working build. Lower is better.</p><div class="seg small tabs" id="bseg"></div><div class="scroll"><table id="board" class="board"></table></div></section>
+  <section id="how"><h2>How it works</h2><div class="steps">
+    <div><b>The model gets a task</b><span>A build box, what must happen, and how it is tested.</span></div>
+    <div><b>It writes a block list</b><span>Every block, with its position and exact state.</span></div>
+    <div><b>Real Minecraft runs it</b><span>A vanilla server places the blocks and flips the levers.</span></div>
+    <div><b>It tries again</b><span>Each model gets 40 tries and an hour to shrink its build.</span></div>
+  </div></section>
+  <footer>Volume is the box around everything a build ever occupies. Blocks drawn with Minecraft's own models and textures.</footer>
+</div>
+
+<dialog id="dlg" aria-labelledby="xt">
+  <button class="x" aria-label="Close">×</button>
+  <div class="sheet">
+    <div class="view">
+      <canvas id="dv"></canvas>
+      <div class="empty" id="empty">No working build to show</div>
+      <div class="cap" id="cap"></div>
+      <div class="toast" id="toast"></div>
+      <div class="controls">
+        <div class="seg" id="seg"></div>
+        <div class="player" id="player" hidden>
+          <button id="play" class="playbtn"></button>
+          <input id="scrub" type="range" min="0" max="1" value="0" aria-label="Tick">
+          <span id="tick" class="tick"></span>
+          <select id="speed" aria-label="Speed"><option value="1">Game speed</option><option value="0.5" selected>Half speed</option><option value="0.2">Slow</option></select>
+        </div>
+      </div>
+    </div>
+    <div class="info">
+      <h2 id="xt"></h2><p id="xb" class="sub"></p>
+      <div class="seg small tabs" id="xmodel"></div>
+      <div class="charthead"><b>Smallest working build so far</b>
+        <div class="seg small" id="xmode"><button data-m="time" aria-pressed="true">Minutes</button><button data-m="tries">Tries</button><button data-m="steps">Steps</button></div></div>
+      <div class="chart" id="chart"></div>
+      <ul class="runs" id="runs"></ul>
+      <div id="facts"></div>
+    </div>
+  </div>
+</dialog>
+<script src="vendor/gl-matrix-min.js"></script><script src="vendor/deepslate.umd.js"></script><script src="viewer.js"></script><script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,157 @@
+{
+ "id": "mem_rs_latch",
+ "kind": "circuit",
+ "family": "memory",
+ "title": "Set-reset latch",
+ "max_box": [
+  16,
+  10,
+  16
+ ],
+ "inputs": [
+  "S",
+  "R"
+ ],
+ "outputs": [
+  "Q"
+ ],
+ "timeout_ticks": 100,
+ "desc": "Q starts off. Switching S on turns Q on; Q stays on after S is switched off again. Switching R on turns Q off; Q stays off after R is switched off again. S and R are never on at the same time.",
+ "test": {
+  "type": "script",
+  "script": [
+   {
+    "set": {},
+    "expect": {
+     "Q": 0
+    }
+   },
+   {
+    "set": {
+     "S": 1
+    },
+    "expect": {
+     "Q": 1
+    },
+    "hold": 20
+   },
+   {
+    "set": {
+     "S": 0
+    },
+    "expect": {
+     "Q": 1
+    },
+    "hold": 60
+   },
+   {
+    "set": {
+     "S": 1
+    },
+    "expect": {
+     "Q": 1
+    },
+    "hold": 20
+   },
+   {
+    "set": {
+     "S": 0
+    },
+    "expect": {
+     "Q": 1
+    },
+    "hold": 20
+   },
+   {
+    "set": {
+     "R": 1
+    },
+    "expect": {
+     "Q": 0
+    },
+    "hold": 20
+   },
+   {
+    "set": {
+     "R": 0
+    },
+    "expect": {
+     "Q": 0
+    },
+    "hold": 60
+   },
+   {
+    "set": {
+     "R": 1
+    },
+    "expect": {
+     "Q": 0
+    },
+    "hold": 20
+   },
+   {
+    "set": {
+     "R": 0
+    },
+    "expect": {
+     "Q": 0
+    },
+    "hold": 20
+   },
+   {
+    "set": {
+     "S": 1
+    },
+    "expect": {
+     "Q": 1
+    },
+    "hold": 40
+   },
+   {
+    "set": {
+     "S": 0
+    },
+    "expect": {
+     "Q": 1
+    },
+    "hold": 20
+   },
+   {
+    "set": {
+     "R": 1
+    },
+    "expect": {
+     "Q": 0
+    },
+    "hold": 20
+   },
+   {
+    "set": {
+     "R": 0
+    },
+    "expect": {
+     "Q": 0
+    },
+    "hold": 40
+   },
+   {
+    "set": {
+     "S": 1
+    },
+    "expect": {
+     "Q": 1
+    },
+    "hold": 20
+   },
+   {
+    "set": {
+     "S": 0
+    },
+    "expect": {
+     "Q": 1
+    },
+    "hold": 20
+   }
+  ]
+ }
+}

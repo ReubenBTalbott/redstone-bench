@@ -1,0 +1,25 @@
+# Only the redstone film is published. The rest of this folder is a local motion-design toolkit
+# (not ours to redistribute) and the licensed music track, which is not redistributable.
+/*
+!/.gitignore
+!/package.json
+!/package-lock.json
+!/remotion.config.ts
+!/tsconfig.json
+!/README.md
+!/src/
+/src/*
+!/src/redstone/
+!/public/
+/public/*
+!/public/footage/
+/public/footage/*
+!/public/footage/lines.json
+!/public/footage/shrink.json
+!/public/fonts/
+/public/fonts/*
+!/public/fonts/pixelify.woff2
+!/public/fonts/jersey25.woff2
+!/public/fonts/figtree.woff2
+!/public/fonts/mono.woff2
+!/public/fonts/OFL.md

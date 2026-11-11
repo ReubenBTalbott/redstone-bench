@@ -1,0 +1,52 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Redstone bench pipeline</title>
+<style>
+  html,body{margin:0;background:#f6f4ee}
+  svg{display:block}
+  text{font-family:-apple-system,"Helvetica Neue",Arial,sans-serif;fill:#1c1c1a}
+  .h{font-size:34px;font-weight:700}
+  .s{font-size:23px;fill:#55534d}
+  .box{fill:#fff;stroke:#1c1c1a;stroke-width:3}
+  .mc{fill:#e3f1dc;stroke:#2f6b2a;stroke-width:4}
+  .a{stroke:#1c1c1a;stroke-width:4;fill:none}
+  .loop{stroke:#b3261e;stroke-width:4;fill:none}
+  .lt{font-size:25px;fill:#b3261e;font-weight:600}
+</style></head><body>
+<svg width="1600" height="760" viewBox="0 0 1600 760">
+  <defs>
+    <marker id="k" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#1c1c1a"/></marker>
+    <marker id="r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#b3261e"/></marker>
+  </defs>
+
+  <rect class="box" x="50" y="170" width="300" height="250" rx="14"/>
+  <text class="h" x="200" y="250" text-anchor="middle">Task</text>
+  <text class="s" x="200" y="305" text-anchor="middle">4x4 piston door</text>
+  <text class="s" x="200" y="340" text-anchor="middle">one lever</text>
+  <text class="s" x="200" y="375" text-anchor="middle">build box limit</text>
+
+  <rect class="box" x="450" y="170" width="300" height="250" rx="14"/>
+  <text class="h" x="600" y="250" text-anchor="middle">Model</text>
+  <text class="s" x="600" y="305" text-anchor="middle">writes a block list</text>
+  <text class="s" x="600" y="340" text-anchor="middle">position + block state</text>
+
+  <rect class="mc" x="850" y="170" width="300" height="250" rx="14"/>
+  <text class="h" x="1000" y="250" text-anchor="middle">Real Minecraft</text>
+  <text class="s" x="1000" y="305" text-anchor="middle">places the blocks</text>
+  <text class="s" x="1000" y="340" text-anchor="middle">flips the lever</text>
+  <text class="s" x="1000" y="375" text-anchor="middle">steps tick by tick</text>
+
+  <rect class="box" x="1250" y="170" width="300" height="250" rx="14"/>
+  <text class="h" x="1400" y="250" text-anchor="middle">Score</text>
+  <text class="s" x="1400" y="305" text-anchor="middle">opens and closes?</text>
+  <text class="s" x="1400" y="340" text-anchor="middle">volume (human record 99)</text>
+  <text class="s" x="1400" y="375" text-anchor="middle">ticks, entities</text>
+
+  <path class="a" d="M350 295H442" marker-end="url(#k)"/>
+  <path class="a" d="M750 295H842" marker-end="url(#k)"/>
+  <path class="a" d="M1150 295H1242" marker-end="url(#k)"/>
+
+  <path class="loop" d="M1400 420V560H600V430" marker-end="url(#r)"/>
+  <text class="lt" x="1000" y="605" text-anchor="middle">result goes back, model tries again</text>
+
+</svg>
+</body></html>

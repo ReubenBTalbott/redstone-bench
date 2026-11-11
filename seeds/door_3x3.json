@@ -1,0 +1,339 @@
+{
+ "start": "closed",
+ "placement": "raw",
+ "blocks": [
+  {
+   "pos": [
+    9,
+    7,
+    3
+   ],
+   "state": "minecraft:sticky_piston[extended=false,facing=up]"
+  },
+  {
+   "pos": [
+    10,
+    7,
+    3
+   ],
+   "state": "minecraft:observer[facing=east,powered=false]"
+  },
+  {
+   "pos": [
+    11,
+    7,
+    3
+   ],
+   "state": "minecraft:sticky_piston[extended=false,facing=up]"
+  },
+  {
+   "pos": [
+    12,
+    7,
+    3
+   ],
+   "state": "minecraft:observer[facing=east,powered=false]"
+  },
+  {
+   "pos": [
+    13,
+    7,
+    3
+   ],
+   "state": "minecraft:note_block[instrument=harp,note=0,powered=false]"
+  },
+  {
+   "pos": [
+    14,
+    7,
+    3
+   ],
+   "state": "minecraft:stone"
+  },
+  {
+   "pos": [
+    8,
+    8,
+    3
+   ],
+   "state": "minecraft:stone"
+  },
+  {
+   "pos": [
+    9,
+    8,
+    3
+   ],
+   "state": "minecraft:redstone_lamp[lit=false]"
+  },
+  {
+   "pos": [
+    10,
+    8,
+    3
+   ],
+   "state": "minecraft:observer[facing=west,powered=false]"
+  },
+  {
+   "pos": [
+    11,
+    8,
+    3
+   ],
+   "state": "minecraft:sticky_piston[extended=false,facing=up]"
+  },
+  {
+   "pos": [
+    12,
+    8,
+    3
+   ],
+   "state": "minecraft:observer[facing=down,powered=false]"
+  },
+  {
+   "pos": [
+    13,
+    8,
+    3
+   ],
+   "state": "minecraft:target[power=0]"
+  },
+  {
+   "pos": [
+    14,
+    8,
+    3
+   ],
+   "state": "minecraft:redstone_wire[east=side,north=none,power=0,south=none,west=side]"
+  },
+  {
+   "pos": [
+    8,
+    9,
+    3
+   ],
+   "state": "minecraft:observer[facing=up,powered=false]"
+  },
+  {
+   "pos": [
+    13,
+    9,
+    3
+   ],
+   "state": "minecraft:sticky_piston[extended=false,facing=west]"
+  },
+  {
+   "pos": [
+    14,
+    9,
+    3
+   ],
+   "state": "minecraft:observer[facing=up,powered=false]"
+  },
+  {
+   "pos": [
+    8,
+    10,
+    3
+   ],
+   "state": "minecraft:sticky_piston[extended=false,facing=east]"
+  },
+  {
+   "pos": [
+    10,
+    10,
+    3
+   ],
+   "state": "minecraft:stone"
+  },
+  {
+   "pos": [
+    11,
+    10,
+    3
+   ],
+   "state": "minecraft:stone"
+  },
+  {
+   "pos": [
+    12,
+    10,
+    3
+   ],
+   "state": "minecraft:stone"
+  },
+  {
+   "pos": [
+    14,
+    10,
+    3
+   ],
+   "state": "minecraft:sticky_piston[extended=false,facing=west]"
+  },
+  {
+   "pos": [
+    8,
+    11,
+    3
+   ],
+   "state": "minecraft:sticky_piston[extended=false,facing=east]"
+  },
+  {
+   "pos": [
+    10,
+    11,
+    3
+   ],
+   "state": "minecraft:stone"
+  },
+  {
+   "pos": [
+    11,
+    11,
+    3
+   ],
+   "state": "minecraft:stone"
+  },
+  {
+   "pos": [
+    12,
+    11,
+    3
+   ],
+   "state": "minecraft:stone"
+  },
+  {
+   "pos": [
+    14,
+    11,
+    3
+   ],
+   "state": "minecraft:sticky_piston[extended=false,facing=west]"
+  },
+  {
+   "pos": [
+    8,
+    12,
+    3
+   ],
+   "state": "minecraft:stone"
+  },
+  {
+   "pos": [
+    9,
+    12,
+    3
+   ],
+   "state": "minecraft:observer[facing=east,powered=false]"
+  },
+  {
+   "pos": [
+    10,
+    12,
+    3
+   ],
+   "state": "minecraft:stone"
+  },
+  {
+   "pos": [
+    11,
+    12,
+    3
+   ],
+   "state": "minecraft:stone"
+  },
+  {
+   "pos": [
+    12,
+    12,
+    3
+   ],
+   "state": "minecraft:stone"
+  },
+  {
+   "pos": [
+    14,
+    12,
+    3
+   ],
+   "state": "minecraft:observer[facing=up,powered=false]"
+  },
+  {
+   "pos": [
+    10,
+    13,
+    3
+   ],
+   "state": "minecraft:piston_head[facing=down,short=false,type=sticky]"
+  },
+  {
+   "pos": [
+    11,
+    13,
+    3
+   ],
+   "state": "minecraft:piston_head[facing=down,short=false,type=sticky]"
+  },
+  {
+   "pos": [
+    12,
+    13,
+    3
+   ],
+   "state": "minecraft:piston_head[facing=down,short=false,type=sticky]"
+  },
+  {
+   "pos": [
+    13,
+    13,
+    3
+   ],
+   "state": "minecraft:observer[facing=west,powered=false]"
+  },
+  {
+   "pos": [
+    14,
+    13,
+    3
+   ],
+   "state": "minecraft:note_block[instrument=basedrum,note=0,powered=false]"
+  },
+  {
+   "pos": [
+    10,
+    14,
+    3
+   ],
+   "state": "minecraft:sticky_piston[extended=true,facing=down]"
+  },
+  {
+   "pos": [
+    11,
+    14,
+    3
+   ],
+   "state": "minecraft:sticky_piston[extended=true,facing=down]"
+  },
+  {
+   "pos": [
+    12,
+    14,
+    3
+   ],
+   "state": "minecraft:sticky_piston[extended=true,facing=down]"
+  },
+  {
+   "pos": [
+    11,
+    15,
+    3
+   ],
+   "state": "minecraft:lever[face=floor,facing=east,powered=true]"
+  }
+ ],
+ "input": [
+  11,
+  15,
+  3
+ ]
+}

@@ -1,0 +1,23 @@
+{
+ "id": "time_clock20",
+ "kind": "circuit",
+ "family": "timing",
+ "title": "20-tick clock",
+ "max_box": [
+  24,
+  12,
+  24
+ ],
+ "inputs": [
+  "E"
+ ],
+ "outputs": [
+  "Q"
+ ],
+ "test": {
+  "type": "clock",
+  "period": 20,
+  "cycles": 2
+ },
+ "desc": "While lever E is off, Q is off. While E is on, Q blinks: it turns on once every 20 game ticks, exactly. How long it stays lit each time is up to you."
+}

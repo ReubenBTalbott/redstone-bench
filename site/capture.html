@@ -1,0 +1,28 @@
+<!doctype html><meta charset=utf-8><title>capture</title><body style="margin:0;background:transparent">
+<canvas id=c style="display:block"></canvas>
+<script src="vendor/gl-matrix-min.js"></script><script src="vendor/deepslate.umd.js"></script><script src="viewer.js"></script>
+<script>
+// Frame-by-frame capture for the film: window.shot({blocks|path..., cam}) draws one frame and returns a PNG data URL.
+const q = new URLSearchParams(location.search), c = document.getElementById('c');
+c.style.width = (q.get('w') || 1400) + 'px'; c.style.height = (q.get('h') || 1080) + 'px';
+let v = null; const builds = {};
+const two = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+function expand(fr, cap) { const out = [fr.first]; let map = fr.first;
+  for (const s of fr.steps) { if (s.n) { for (let i = 0; i < Math.min(s.n, cap); i++) out.push(map); continue; }
+    map = { ...map }; for (const [k, st] of Object.entries(s.c)) { if (st === null) delete map[k]; else map[k] = st; } out.push(map); }
+  return out; }
+window.load = async (path, cap = 8) => { const b = builds[path] ||= await fetch('data/builds/' + path + '.json').then(r => r.json());
+  if (b.frames && !b.x) b.x = expand(b.frames, cap);
+  return { n: b.x ? b.x.length : 0, bounds: b.bounds, volume: b.volume, states: Object.keys(b.states), blocks: Object.keys(b.x ? b.x[0] : {}).length }; };
+const asMap = (st) => Array.isArray(st) ? Object.fromEntries(st.map(b => [b.pos.join(','), b.state])) : st;
+// o: {path, i | state, limit, shift:[dx,dy,dz], bounds, yaw, pitch, zoom}
+window.shot = async (o) => { const b = builds[o.path]; let map = o.state ? asMap(b.states[o.state]) : b.x[Math.min(o.i || 0, b.x.length - 1)];
+  let ent = Object.entries(map).map(([k, s]) => [k.split(',').map(Number), s]);
+  if (o.limit != null) { ent.sort((p, r) => p[0][1] - r[0][1] || p[0][0] - r[0][0] || p[0][2] - r[0][2]); ent = ent.slice(0, o.limit); }
+  const sh = o.shift || [0, 0, 0];
+  const blocks = ent.map(([p, s]) => ({ pos: p.map((x, i) => x + sh[i]), state: s }));
+  const bounds = o.bounds || b.bounds;
+  if (v) await v.set(blocks, bounds); else { v = RSB.viewer(c, blocks, { bounds }); await v.ready; }
+  v.cam({ yaw: o.yaw, pitch: o.pitch, zoom: o.zoom }); await two();
+  return c.toDataURL('image/png'); };
+</script>

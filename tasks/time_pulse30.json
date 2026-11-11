@@ -1,0 +1,25 @@
+{
+ "id": "time_pulse30",
+ "kind": "circuit",
+ "family": "timing",
+ "title": "30-tick pulse",
+ "max_box": [
+  24,
+  12,
+  24
+ ],
+ "inputs": [
+  "E"
+ ],
+ "outputs": [
+  "Q"
+ ],
+ "test": {
+  "type": "pulse",
+  "length": 30,
+  "max_delay": 40,
+  "quiet": 60,
+  "cycles": 3
+ },
+ "desc": "When lever E is switched on (and left on), Q lights up once for exactly 30 game ticks, then goes dark and stays dark. Switching E off must not light Q."
+}

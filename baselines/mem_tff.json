@@ -1,0 +1,58 @@
+{
+ "blocks": [
+  {
+   "pos": [
+    0,
+    1,
+    0
+   ],
+   "state": "minecraft:copper_bulb"
+  },
+  {
+   "pos": [
+    0,
+    2,
+    0
+   ],
+   "state": "minecraft:lever[face=floor,facing=north]"
+  },
+  {
+   "pos": [
+    1,
+    0,
+    0
+   ],
+   "state": "minecraft:stone"
+  },
+  {
+   "pos": [
+    1,
+    1,
+    0
+   ],
+   "state": "minecraft:comparator[facing=west]"
+  },
+  {
+   "pos": [
+    2,
+    1,
+    0
+   ],
+   "state": "minecraft:redstone_lamp"
+  }
+ ],
+ "inputs": {
+  "T": [
+   0,
+   2,
+   0
+  ]
+ },
+ "outputs": {
+  "Q": [
+   2,
+   1,
+   0
+  ]
+ }
+}

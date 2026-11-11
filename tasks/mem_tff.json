@@ -1,0 +1,138 @@
+{
+ "id": "mem_tff",
+ "kind": "circuit",
+ "family": "memory",
+ "title": "T flip-flop",
+ "max_box": [
+  16,
+  10,
+  16
+ ],
+ "inputs": [
+  "T"
+ ],
+ "outputs": [
+  "Q"
+ ],
+ "timeout_ticks": 100,
+ "desc": "Q starts off. Every time lever T is switched on, Q flips (off to on, on to off) and keeps that value. Switching T off changes nothing.",
+ "test": {
+  "type": "script",
+  "script": [
+   {
+    "set": {},
+    "expect": {
+     "Q": 0
+    }
+   },
+   {
+    "set": {
+     "T": 1
+    },
+    "expect": {
+     "Q": 1
+    },
+    "hold": 20
+   },
+   {
+    "set": {
+     "T": 0
+    },
+    "expect": {
+     "Q": 1
+    },
+    "hold": 40
+   },
+   {
+    "set": {
+     "T": 1
+    },
+    "expect": {
+     "Q": 0
+    },
+    "hold": 40
+   },
+   {
+    "set": {
+     "T": 0
+    },
+    "expect": {
+     "Q": 0
+    },
+    "hold": 20
+   },
+   {
+    "set": {
+     "T": 1
+    },
+    "expect": {
+     "Q": 1
+    },
+    "hold": 20
+   },
+   {
+    "set": {
+     "T": 0
+    },
+    "expect": {
+     "Q": 1
+    },
+    "hold": 60
+   },
+   {
+    "set": {
+     "T": 1
+    },
+    "expect": {
+     "Q": 0
+    },
+    "hold": 60
+   },
+   {
+    "set": {
+     "T": 0
+    },
+    "expect": {
+     "Q": 0
+    },
+    "hold": 20
+   },
+   {
+    "set": {
+     "T": 1
+    },
+    "expect": {
+     "Q": 1
+    },
+    "hold": 20
+   },
+   {
+    "set": {
+     "T": 0
+    },
+    "expect": {
+     "Q": 1
+    },
+    "hold": 40
+   },
+   {
+    "set": {
+     "T": 1
+    },
+    "expect": {
+     "Q": 0
+    },
+    "hold": 40
+   },
+   {
+    "set": {
+     "T": 0
+    },
+    "expect": {
+     "Q": 0
+    },
+    "hold": 20
+   }
+  ]
+ }
+}

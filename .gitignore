@@ -1,0 +1,13 @@
+.rcon_password
+server/world/
+server/logs/
+server/libraries/
+server/versions/
+server/server.jar
+server/server.properties
+__pycache__/
+runs/
+site-host/dist/
+server/console.log
+video/film/public/footage/*/
+video/film/out/

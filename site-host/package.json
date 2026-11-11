@@ -1,0 +1,1 @@
+{"name":"redstone-bench-site-host","private":true,"scripts":{"build":"bash sync.sh"}}

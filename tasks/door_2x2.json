@@ -1,0 +1,1 @@
+{"id": "door_2x2", "opening": [[3, 0, 0], [3, 1, 0], [4, 0, 0], [4, 1, 0]], "max_box": [16, 16, 8], "timeout_ticks": 200, "cycles": 3, "kind": "door", "family": "door"}

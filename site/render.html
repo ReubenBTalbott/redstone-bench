@@ -1,0 +1,8 @@
+<!doctype html><meta charset=utf-8><title>render</title><body style="margin:0;background:transparent">
+<canvas id=c style="width:800px;height:800px;display:block"></canvas>
+<script src="vendor/gl-matrix-min.js"></script><script src="vendor/deepslate.umd.js"></script><script src="viewer.js"></script>
+<script>
+const c = document.getElementById('c');
+let v = null;
+window.show = async (blocks) => { c.dataset.ready = ''; if (v) await v.set(blocks); else { v = RSB.viewer(c, blocks); await v.ready; } await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))); };
+</script>

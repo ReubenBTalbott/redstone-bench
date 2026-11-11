@@ -1,0 +1,70 @@
+{
+ "id": "logic_not",
+ "kind": "circuit",
+ "family": "logic",
+ "title": "NOT gate",
+ "max_box": [
+  12,
+  8,
+  12
+ ],
+ "inputs": [
+  "A"
+ ],
+ "outputs": [
+  "Q"
+ ],
+ "timeout_ticks": 100,
+ "desc": "Q is on exactly when A is off.\n\nTruth table:\n\n    A | Q\n    0 | 1\n    1 | 0",
+ "test": {
+  "type": "script",
+  "script": [
+   {
+    "set": {},
+    "expect": {
+     "Q": 1
+    }
+   },
+   {
+    "set": {
+     "A": 1
+    },
+    "expect": {
+     "Q": 0
+    }
+   },
+   {
+    "set": {
+     "A": 0
+    },
+    "expect": {
+     "Q": 1
+    }
+   },
+   {
+    "set": {
+     "A": 1
+    },
+    "expect": {
+     "Q": 0
+    }
+   },
+   {
+    "set": {
+     "A": 0
+    },
+    "expect": {
+     "Q": 1
+    }
+   },
+   {
+    "set": {
+     "A": 1
+    },
+    "expect": {
+     "Q": 0
+    }
+   }
+  ]
+ }
+}
