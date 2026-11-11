@@ -521,8 +521,11 @@ def main():
     PRIVATE.chmod(0o700)
     CODEX_HOME.mkdir(exist_ok=True)
     AGENT_HOME.mkdir(exist_ok=True)
-    if not (CODEX_HOME / "auth.json").exists():
-        os.symlink(pathlib.Path.home() / ".codex/auth.json", CODEX_HOME / "auth.json")
+    if not (CODEX_HOME / "auth.json").exists():      # parallel workers race to create this; losing is fine
+        try:
+            os.symlink(pathlib.Path.home() / ".codex/auth.json", CODEX_HOME / "auth.json")
+        except FileExistsError:
+            pass
     env = {"PATH": os.environ["PATH"], "HOME": str(AGENT_HOME), "CODEX_HOME": str(CODEX_HOME), "LANG": "en_US.UTF-8"}
     agy = a.model in AGY
     cur = a.model in CURSOR
