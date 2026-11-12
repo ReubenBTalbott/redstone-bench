@@ -34,7 +34,7 @@ def tasks():
 
 
 def jobs():   # the quick settings first so the table fills in, then the slow ones task by task
-    fast = [c for c in CONFIGS if c[1] in ("low", "medium", "high")]
+    fast = [c for c in CONFIGS if c[1] in ("minimal", "low", "medium", "high")]
     slow = [c for c in CONFIGS if c not in fast]
     return [(m, e, t) for t in tasks() for m, e in fast] + [(m, e, t) for t in tasks() for m, e in slow]
 
@@ -45,7 +45,7 @@ def rdir(m, e, t):
 
 def audit():
     rows, done, failed = [], 0, 0
-    print(f"{'task':18}" + "".join(f"{(m[0].upper() + '-' + e)[:8]:9}" for m, e in CONFIGS))
+    print(f"{'task':18}" + "".join(f"{(m + '-' + e)[:8]:9}" for m, e in CONFIGS))
     for t in tasks():
         line = f"{t:18}"
         for m, e in CONFIGS:
