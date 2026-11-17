@@ -80,6 +80,7 @@ def probe_reset():
 
 
 def main():
+    known_reset = 0.0                       # when the last full reading said the quota frees up
     while True:
         todo = missing()
         status = {"time": time.strftime("%Y-%m-%dT%H:%M:%S"), "configs": CONFIGS, "missing": len(todo),
@@ -90,6 +91,15 @@ def main():
             (B / "status.json").write_text(json.dumps(status | {"state": "done"}, indent=1))
             return 0
         u = usage()
+        for _ in range(3):                  # `muse usage` sometimes times out; ask again before falling back
+            if u is not None:
+                break
+            time.sleep(60)
+            u = usage()
+        if u is None and time.time() < known_reset:
+            # a blip while the cap is known to be full: a tiny probe can still squeeze into the last 1%,
+            # so trust the reset time already read instead of starting a batch that dies at once
+            u = (100, 100, int(known_reset - time.time()))
         if u is None:
             # a new subscription reports no usage until its first use; Muse's own 429 says when the window resets
             r = probe_reset()
@@ -105,6 +115,7 @@ def main():
                 u = (100, 100, r)
         wp, kp, wait = u
         if wait:
+            known_reset = time.time() + wait
             nap = min(wait + 300, 3600)          # recheck at least hourly
             log(f"quota full (window {wp}%, weekly {kp}%), reset in {wait // 60} min; sleeping {nap // 60} min")
             (B / "status.json").write_text(json.dumps(status | {"state": "waiting for quota", "window": wp, "weekly": kp,
