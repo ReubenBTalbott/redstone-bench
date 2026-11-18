@@ -26,11 +26,13 @@
   const cfgName = (c) => `${c.model.replace("GPT-", "")} ${c.effort}`;
   const cfg = Object.fromEntries(d.configs.map((c) => [c.id, c]));
   const mkey = (c) => c.id.split("-")[0];
-  const short = (c) => { const w = c.model.split(" "); return /^[\d.]+$/.test(w.at(-1)) ? w[0] : w.at(-1); };   // "GPT-6 Astra" -> Astra, "Grok 4.7" -> Grok
+  const family = (m) => { const w = m.split(" "); return /^[\d.]+$/.test(w.at(-1)) ? w[0] : w.at(-1); };   // "GPT-6 Astra" -> Astra, "Grok 4.7" -> Grok
+  const allModels = [...new Set(d.configs.map((c) => c.model))];
+  const short = (c) => (allModels.filter((m) => family(m) === family(c.model)).length > 1 ? c.model.replace("GPT-", "") : family(c.model));   // two Sols: "6.2 Sol", "6.1 Sol"
   const models = [...new Set(d.configs.map(mkey))];
   const modelName = Object.fromEntries(d.configs.map((c) => [mkey(c), short(c)]));
   // one colour and one shape per model, so colour is never the only cue
-  const MK = { sol: ["#2a78d6", "circle"], terra: ["#1baf7a", "square"], astra: ["#e34948", "tri"], luna: ["#eda100", "diamond"], carbon: ["#b0308f", "pent"], grok: ["#3a3ab8", "hex"] };
+  const MK = { sol62: ["#123f94", "star"], astra62: ["#a3202d", "down"], sol: ["#2a78d6", "circle"], terra: ["#1baf7a", "square"], astra: ["#e34948", "tri"], luna: ["#eda100", "diamond"], carbon: ["#b0308f", "pent"], grok: ["#3a3ab8", "hex"] };
   const glyph = (k, x, y, r, extra = {}) => {
     const [fill, sh] = MK[k] || ["#8f9da8", "circle"], a = { fill, stroke: "#fff", "stroke-width": 1.5, ...extra };
     if (sh === "circle") return svg("circle", { cx: x, cy: y, r, ...a });
@@ -38,6 +40,8 @@
     if (sh === "hex") return svg("path", { d: [0, 1, 2, 3, 4, 5].map((i) => `${i ? "L" : "M"}${x + r * 1.15 * Math.cos((i * Math.PI) / 3)},${y + r * 1.15 * Math.sin((i * Math.PI) / 3)}`).join("") + "Z", ...a });
     if (sh === "pent") return svg("path", { d: [0, 1, 2, 3, 4].map((i) => `${i ? "L" : "M"}${x + r * 1.2 * Math.sin((i * 2 * Math.PI) / 5)},${y - r * 1.2 * Math.cos((i * 2 * Math.PI) / 5)}`).join("") + "Z", ...a });
     if (sh === "tri") return svg("path", { d: `M${x},${y - r * 1.15}L${x + r * 1.1},${y + r * 0.85}H${x - r * 1.1}Z`, ...a });
+    if (sh === "down") return svg("path", { d: `M${x},${y + r * 1.15}L${x + r * 1.1},${y - r * 0.85}H${x - r * 1.1}Z`, ...a });
+    if (sh === "star") return svg("path", { d: [...Array(10).keys()].map((i) => { const R = r * (i % 2 ? 0.6 : 1.35), t = (i * Math.PI) / 5; return `${i ? "L" : "M"}${x + R * Math.sin(t)},${y - R * Math.cos(t)}`; }).join("") + "Z", ...a });
     return svg("path", { d: `M${x},${y - r * 1.25}L${x + r * 1.25},${y}L${x},${y + r * 1.25}L${x - r * 1.25},${y}Z`, ...a });
   };
   const sw = (k) => { const g = svg("svg", { viewBox: "0 0 14 14", width: 14, height: 14, class: "sw", "aria-hidden": "true" }); g.append(glyph(k, 7, 7, 5, { stroke: "none" })); return g; };
@@ -221,6 +225,8 @@
     }
     return out;
   }
+  let signalOn = false;
+  $("signal").onclick = () => { signalOn = !signalOn; $("signal").setAttribute("aria-pressed", signalOn); $("dv").closest(".view").classList.toggle("signal", signalOn); v?.signal(signalOn); };
   function stop() { if (anim) { clearTimeout(anim.timer); anim.playing = false; } setPlay(); }
   function setPlay() { $("play").textContent = anim?.playing ? "Pause" : anim && anim.i > 0 && anim.i >= anim.end ? "Replay" : "Play"; }
   function frame(i) {
@@ -255,7 +261,7 @@
     const b = await load(other ? other.id : `${run.id}/${n}`);
     if (my !== token) return;
     const ss = sortStates(Object.keys(b.states));
-    const draw = (blocks) => (v ? v.set(blocks, b.bounds) : (v = RSB.viewer($("dv"), blocks, { wheel: true, bounds: b.bounds })));
+    const draw = (blocks) => (v ? v.set(blocks, b.bounds) : (v = RSB.viewer($("dv"), blocks, { wheel: true, bounds: b.bounds, signal: signalOn })));
     $("cap").append(el("b", {}, other ? other.source : cfgName(cfg[run.config])),
       other ? `, volume ${b.volume}` : `, try ${n}${n === run.best ? " (its best)" : ""}: volume ${b.volume}, ${b.dims.join(" × ")}, ${b.ticks} ticks`);
     if (b.frames) {

@@ -133,3 +133,5 @@ table.mini td{padding:7px 12px 7px 0;border-bottom:1px solid var(--line)}
 table.mini td+td,table.mini th+th{text-align:right;white-space:nowrap}
 .contrib .charthead a{white-space:nowrap}
 .contrib .charthead span{color:var(--soft);white-space:nowrap}
+
+.view.signal{background:#0e1217}.view.signal .cap{color:#dbe5ec}.view.signal .cap b{color:#fff}

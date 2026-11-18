@@ -4,7 +4,7 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 rm -rf dist && mkdir -p dist/data/builds dist/renders
-cp ../site/index.html ../site/style.css ../site/app.js ../site/viewer.js dist/
+cp ../site/index.html ../site/style.css ../site/app.js ../site/viewer.js ../site/signal.js dist/
 cp ../site/favicon.svg ../site/favicon-32.png ../site/apple-touch-icon.png ../site/icon-192.png ../site/og.png dist/
 cp -R ../site/vendor ../site/assets dist/
 python3 - <<'PY'

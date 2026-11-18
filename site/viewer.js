@@ -59,11 +59,11 @@
     const size = hi.map((v, i) => v - lo[i] + 1);
     const s = new Structure(size);
     blocks.forEach((b) => { const [id, props] = parse(b.state); try { s.addBlock(b.pos.map((v, i) => v - lo[i]), id, props); } catch (e) {} });
-    return { s, size };
+    return { s, size, lo };
   }
 
   function viewer(canvas, blocks, opts = {}) {
-    let dead = false, renderer = null, size = [1, 1, 1], raf = 0;
+    let dead = false, renderer = null, size = [1, 1, 1], raf = 0, signal = null, signalOn = !!opts.signal, shown = blocks, origin = [0, 0, 0];
     let yaw = opts.yaw ?? 0.65, pitch = opts.pitch ?? 0.5, zoom = opts.zoom ?? 1, spin = !!opts.spin;
     const gl = canvas.getContext("webgl", { alpha: true, antialias: true, preserveDrawingBuffer: true });
 
@@ -87,6 +87,13 @@
       gl.clearColor(0, 0, 0, 0);
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
       renderer.drawStructure(view);
+      if (signalOn) {
+        signal ??= RSBSignal.create(gl);
+        if (signal.fresh !== shown) { signal.update(shown, origin); signal.fresh = shown; }
+        const proj = mat4.create();
+        mat4.perspective(proj, (70 * Math.PI) / 180, canvas.clientWidth / canvas.clientHeight, 0.1, 500);
+        if (signal.draw(view, proj, performance.now())) ask(); else signal.rest();
+      }
       canvas.dataset.ready = "1";
       if (spin) { yaw += 0.004; ask(); }
     }
@@ -98,7 +105,7 @@
       return resources().then((res) => {
         if (dead) return;
         const b = build(next, bounds);
-        size = b.size;
+        size = b.size; origin = b.lo; shown = next;
         if (renderer) renderer.setStructure(b.s); else { fit(); renderer = new StructureRenderer(gl, b.s, res, { useInvisibleBlockBuffer: false }); renderer.setViewport(0, 0, canvas.width, canvas.height); }
         ask();
       });
@@ -118,7 +125,7 @@
     canvas.style.touchAction = "pan-y"; canvas.style.cursor = "grab";
     const ready = set(blocks);
     const cam = (o) => { if (o.yaw != null) yaw = o.yaw; if (o.pitch != null) pitch = o.pitch; if (o.zoom != null) zoom = o.zoom; spin = false; ask(); };
-    return { set, cam, ready, redraw: ask, destroy() { dead = true; ro.disconnect(); cancelAnimationFrame(raf); } };
+    return { set, cam, ready, redraw: ask, signal(on) { signalOn = on; if (signal) signal.rest(); ask(); }, destroy() { dead = true; ro.disconnect(); cancelAnimationFrame(raf); } };
   }
 
   window.RSB = { viewer, resources };
