@@ -7,6 +7,7 @@ usage: batch.py            run everything that is not done (4 at a time)
 import json
 import os
 import pathlib
+import re
 import shutil
 import signal
 import socket
@@ -80,11 +81,29 @@ def kill_strays():
             f.unlink(missing_ok=True)
 
 
+def codex_week_used():
+    """Percent of the weekly Codex limit used, from the newest session logs; None if there is no current reading."""
+    days = [time.strftime("%Y/%m/%d", time.localtime(time.time() - d * 86400)) for d in (0, 1)]
+    homes = [pathlib.Path.home() / ".codex", pathlib.Path.home() / ".cache/redstone-bench/codex-home"]
+    logs = [f for h in homes for d in days for f in (h / "sessions" / d).glob("rollout-*.jsonl")]
+    for f in sorted(logs, key=lambda p: p.stat().st_mtime, reverse=True)[:8]:
+        with open(f, "rb") as h:
+            h.seek(max(0, f.stat().st_size - 300_000))
+            hits = re.findall(r'"primary":\{"used_percent":([\d.]+),"window_minutes":10080,"resets_at":(\d+)', h.read().decode("utf8", "ignore"))
+        if hits:
+            used, resets = hits[-1]
+            return float(used) if int(resets) > time.time() else None
+    return None
+
+
 def ready():
     """The judge must be up and the disk must have room, or a run would be wasted."""
     try:
         socket.create_connection(("127.0.0.1", 25592), timeout=5).close()
     except OSError:
+        return False
+    stop = os.environ.get("RSB_CODEX_STOP")        # leave the rest of the weekly limit for other Codex work
+    if stop and (codex_week_used() or 0) >= float(stop):
         return False
     return shutil.disk_usage(ROOT).free > 3 << 30
 
@@ -95,7 +114,7 @@ def run_one(m, e, t, lock):
         if (rdir(m, e, t) / "result.json").exists():
             return
         while not ready():
-            (B / "waiting").write_text(time.strftime("%Y-%m-%dT%H:%M:%S") + " server down or disk full\n")
+            (B / "waiting").write_text(time.strftime("%Y-%m-%dT%H:%M:%S") + " server down, disk full or Codex limit reserve reached\n")
             time.sleep(30)
         (B / "waiting").unlink(missing_ok=True)
         with open(B / "logs" / f"{name}.log", "a") as log:

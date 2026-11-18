@@ -20,7 +20,8 @@ import time
 from verify import verify
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-MODELS = {"sol": "gpt-6.1-sol", "terra": "gpt-6.1-terra", "astra": "gpt-6-astra", "luna": "gpt-6-luna",
+MODELS = {"sol62": "gpt-6.2-sol", "astra62": "gpt-6.2-astra",
+          "sol": "gpt-6.1-sol", "terra": "gpt-6.1-terra", "astra": "gpt-6-astra", "luna": "gpt-6-luna",
           "carbon": "gemini-4-carbon", "grok": "grok-4.7",
           "wonder-full": "muse-wonder-full-1.0", "wonder": "muse-wonder-1.0", "ember": "muse-ember-1.0",
           "spark13": "muse-spark-1.3", "spark12": "muse-spark-1.2"}
