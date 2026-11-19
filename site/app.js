@@ -32,12 +32,14 @@
   const models = [...new Set(d.configs.map(mkey))];
   const modelName = Object.fromEntries(d.configs.map((c) => [mkey(c), short(c)]));
   // one colour and one shape per model, so colour is never the only cue
-  const MK = { sol62: ["#123f94", "star"], astra62: ["#a3202d", "down"], sol: ["#2a78d6", "circle"], terra: ["#1baf7a", "square"], astra: ["#e34948", "tri"], luna: ["#eda100", "diamond"], carbon: ["#b0308f", "pent"], grok: ["#3a3ab8", "hex"] };
+  const MK = { sol62: ["#123f94", "star"], astra62: ["#a3202d", "down"], sol: ["#2a78d6", "circle"], terra: ["#1baf7a", "square"], astra: ["#e34948", "tri"], luna: ["#eda100", "diamond"], neon: ["#0099b8", "cross"], carbon: ["#b0308f", "pent"], opus55: ["#d4652f", "oct"], grok: ["#3a3ab8", "hex"] };
   const glyph = (k, x, y, r, extra = {}) => {
     const [fill, sh] = MK[k] || ["#8f9da8", "circle"], a = { fill, stroke: "#fff", "stroke-width": 1.5, ...extra };
     if (sh === "circle") return svg("circle", { cx: x, cy: y, r, ...a });
     if (sh === "square") return svg("rect", { x: x - r * 0.9, y: y - r * 0.9, width: r * 1.8, height: r * 1.8, rx: 1.5, ...a });
     if (sh === "hex") return svg("path", { d: [0, 1, 2, 3, 4, 5].map((i) => `${i ? "L" : "M"}${x + r * 1.15 * Math.cos((i * Math.PI) / 3)},${y + r * 1.15 * Math.sin((i * Math.PI) / 3)}`).join("") + "Z", ...a });
+    if (sh === "oct") return svg("path", { d: [0, 1, 2, 3, 4, 5, 6, 7].map((i) => { const t = ((i + 0.5) * Math.PI) / 4; return `${i ? "L" : "M"}${x + r * 1.12 * Math.cos(t)},${y + r * 1.12 * Math.sin(t)}`; }).join("") + "Z", ...a });
+    if (sh === "cross") { const o = r * 1.12, c = r * 0.38; return svg("path", { d: `M${x - c},${y - o}H${x + c}V${y - c}H${x + o}V${y + c}H${x + c}V${y + o}H${x - c}V${y + c}H${x - o}V${y - c}H${x - c}Z`, ...a }); }
     if (sh === "pent") return svg("path", { d: [0, 1, 2, 3, 4].map((i) => `${i ? "L" : "M"}${x + r * 1.2 * Math.sin((i * 2 * Math.PI) / 5)},${y - r * 1.2 * Math.cos((i * 2 * Math.PI) / 5)}`).join("") + "Z", ...a });
     if (sh === "tri") return svg("path", { d: `M${x},${y - r * 1.15}L${x + r * 1.1},${y + r * 0.85}H${x - r * 1.1}Z`, ...a });
     if (sh === "down") return svg("path", { d: `M${x},${y + r * 1.15}L${x + r * 1.1},${y - r * 0.85}H${x - r * 1.1}Z`, ...a });

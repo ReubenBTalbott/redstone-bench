@@ -22,10 +22,11 @@ from verify import verify
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 MODELS = {"sol62": "gpt-6.2-sol", "astra62": "gpt-6.2-astra",
           "sol": "gpt-6.1-sol", "terra": "gpt-6.1-terra", "astra": "gpt-6-astra", "luna": "gpt-6-luna",
-          "carbon": "gemini-4-carbon", "grok": "grok-4.7",
+          "neon": "gemini-4-neon", "carbon": "gemini-4-carbon", "opus55": "claude-opus-5-5", "grok": "grok-4.7",
           "wonder-full": "muse-wonder-full-1.0", "wonder": "muse-wonder-1.0", "ember": "muse-ember-1.0",
           "spark13": "muse-spark-1.3", "spark12": "muse-spark-1.2"}
-AGY = {"carbon"}                       # these run through the Antigravity CLI (agy) instead of Codex
+AGY = {"carbon", "neon"}                # these run through the Antigravity CLI (agy) instead of Codex
+CLAUDE = {"opus55"}                     # these run through the Claude Code CLI (claude) on Max subscription
 CURSOR = {"grok"}                      # these run through the Cursor CLI (cursor-agent)
 MUSE = {"wonder-full", "wonder", "ember", "spark13", "spark12"}   # these run through the Muse CLI (muse exec)
 AGY_HOMES = pathlib.Path("/private/tmp/rsb-agy-homes")
@@ -153,6 +154,58 @@ def muse_events(d, t):
         if p.get("terminal") == "completed":
             return "done", {"usage": None, "final": p.get("text") or ""}
         return "error", {"text": json.dumps(p)[:600]}
+    return None, None
+
+
+def claude_setup(tag, ws):
+    """A fresh HOME under the shared macOS sandbox profile with only minimal non-secret Claude account metadata
+    (no memories, no CLAUDE.md, no project history, no MCP servers); OAuth token comes from macOS Keychain."""
+    home = AGY_HOMES / tag
+    shutil.rmtree(home, ignore_errors=True)
+    home, prof = agy_setup(tag, ws, links=[])
+    (home / ".claude").mkdir(exist_ok=True)
+    src = pathlib.Path.home() / ".claude.json"
+    if src.exists():
+        cfg = json.loads(src.read_text())
+        mini = {k: cfg[k] for k in ("userID", "hasCompletedOnboarding", "lastOnboardingVersion", "oauthAccount") if k in cfg}
+        (home / ".claude.json").write_text(json.dumps(mini))
+    return home, prof
+
+
+def claude_drop(home):
+    (home / ".claude.json").unlink(missing_ok=True)
+    agy_drop(home)
+
+
+def claude_events(d, t):
+    """Claude Code's --output-format stream-json as the same (kind, payload) the other runners give."""
+    typ = d.get("type")
+    if typ == "rate_limit_event":
+        info = d.get("rate_limit_info") or {}
+        if info.get("status") != "allowed":
+            return "rate_limit", {"resets_at": info.get("resetsAt"), "text": json.dumps(info)[:400]}
+        return None, None
+    if typ == "assistant":
+        msg = d.get("message") or {}
+        if d.get("is_api_error_message") or d.get("error"):
+            txt = " ".join(c.get("text", "") for c in (msg.get("content") or []) if isinstance(c, dict))
+            return "error", {"text": (txt or json.dumps(d))[:600]}
+        for block in msg.get("content") or []:
+            if isinstance(block, dict) and block.get("type") == "tool_use":
+                name = block.get("name") or "tool"
+                inp = block.get("input") or {}
+                cmd = inp.get("command") or f"[{name}] " + json.dumps(inp)[:200]
+                return "command", {"command": str(cmd), "tool": name, "output": ""}
+        return None, None
+    if typ == "result":
+        u = d.get("usage") or {}
+        in_tok = (u.get("input_tokens") or 0) + (u.get("cache_creation_input_tokens") or 0) + (u.get("cache_read_input_tokens") or 0)
+        think = (u.get("output_tokens_details") or {}).get("thinking_tokens")
+        usage = {"input_tokens": in_tok, "cached_input_tokens": u.get("cache_read_tokens") or u.get("cache_read_input_tokens"),
+                 "output_tokens": u.get("output_tokens"), "reasoning_output_tokens": think}
+        if d.get("is_error") or d.get("subtype") != "success":
+            return "error", {"text": json.dumps(d)[:600]}
+        return "done", {"usage": usage, "final": d.get("result") or ""}
     return None, None
 
 
@@ -533,10 +586,11 @@ def main():
             pass
     env = {"PATH": os.environ["PATH"], "HOME": str(AGENT_HOME), "CODEX_HOME": str(CODEX_HOME), "LANG": "en_US.UTF-8"}
     agy = a.model in AGY
+    cla = a.model in CLAUDE
     cur = a.model in CURSOR
     mus = a.model in MUSE
-    sx = agy or cur or mus               # sandboxed runners with a translated event stream
-    events = muse_events if mus else agy_events if agy else cursor_events
+    sx = agy or cla or cur or mus        # sandboxed runners with a translated event stream
+    events = muse_events if mus else agy_events if agy else claude_events if cla else cursor_events
     argv = ["codex", "exec", "-m", MODELS[a.model], "-c", f'model_reasoning_effort="{a.effort}"',
             "-c", 'web_search="disabled"', "-c", 'approval_policy="never"',
             *[x for f in ("plugins", "apps", "memories", "image_generation") for x in ("--disable", f)],
@@ -544,11 +598,23 @@ def main():
             "Read TASK.md in this folder and do the task."]
     if agy:
         home, prof = agy_setup(f"{cfg}__{name}", ws)
-        env = {"PATH": os.environ["PATH"], "HOME": str(home), "LANG": "en_US.UTF-8"}
+        env = {"PATH": os.environ["PATH"], "HOME": str(home), "TMPDIR": str(home / "tmp"), "TMPPREFIX": str(home / "tmp/zsh"), "LANG": "en_US.UTF-8"}
         argv = ["sandbox-exec", "-f", str(prof), str(pathlib.Path.home() / ".local/bin/agy"), "-p",
                 "Read TASK.md in this folder and do the task.", "--model", f"{MODELS[a.model]}-{a.effort}", "--effort", a.effort,
                 "--dangerously-skip-permissions", "--disable-slash-commands", "--output-format", "stream-json",
                 "--print-timeout", f"{int(a.minutes * 60) + 120}s", "--settings", json.dumps({"permissions": {"deny": AGY_DENY}})]
+    if cla:
+        # a fresh HOME under the shared sandbox profile with minimal non-secret Claude account metadata,
+        # Keychain OAuth login (no ANTHROPIC_API_KEY), no user settings/memories/MCPs, web & subagent tools denied
+        home, prof = claude_setup(f"{cfg}__{name}", ws)
+        env = {"PATH": os.environ["PATH"], "HOME": str(home), "USER": os.environ.get("USER", "adam"),
+               "LOGNAME": os.environ.get("LOGNAME", "adam"), "TMPDIR": str(home / "tmp"),
+               "TMPPREFIX": str(home / "tmp/zsh"), "CLAUDE_CODE_TMPDIR": str(home / "tmp"), "LANG": "en_US.UTF-8"}
+        argv = ["sandbox-exec", "-f", str(prof), str(pathlib.Path.home() / ".local/bin/claude"), "-p",
+                "Read TASK.md in this folder and do the task.", "--model", MODELS[a.model], "--effort", a.effort,
+                "--output-format", "stream-json", "--verbose", "--dangerously-skip-permissions",
+                "--no-session-persistence", "--setting-sources", "", "--strict-mcp-config",
+                "--disallowedTools", "WebSearch", "WebFetch", "Agent", "NotebookEdit"]
     if cur:
         # a fresh HOME (no Cursor rules, skills or MCP servers; the Library link keeps the keychain sign-in), the same
         # macOS sandbox profile as agy, Cursor's own sandbox off (it cannot nest), web tools denied, commands audited
@@ -591,6 +657,10 @@ def main():
                     if k == "command":
                         state["commands"] += 1
                         state["timeline"].append({"t": t, "kind": "command_execution", "step": state["commands"], "command": x["command"][:240], "tool": x["tool"]})
+                    elif k == "rate_limit":
+                        if x.get("resets_at"):
+                            state["rate_limit_resets_at"] = x["resets_at"]
+                        state["errors"].append("rate_limit: " + x["text"])
                     elif k == "error":
                         # a translated runner's error is its terminal event (provider quota, auth, crash):
                         # a harness failure to retry, never a scored model result
@@ -616,6 +686,8 @@ def main():
     except Exception:
         if mus:
             muse_drop(home)     # never leave the copied sign-in behind in a home no run will clean
+        elif cla:
+            claude_drop(home)
         raise
     (out / "codex.pid").write_text(str(proc.pid))
     pumper = threading.Thread(target=pump, args=(proc,), daemon=True)
@@ -641,7 +713,9 @@ def main():
             continue
         if sx:
             k, x = events(d, 0)
-            if k == "error" and not state.get("fault"):
+            if k == "rate_limit" and x.get("resets_at"):
+                state["rate_limit_resets_at"] = x["resets_at"]
+            elif k == "error" and not state.get("fault"):
                 state["fault"] = "provider ended the run: " + x["text"][:200]
             elif k == "usage":
                 usage = x["usage"]
@@ -673,11 +747,13 @@ def main():
     (out / "timeline.json").write_text(json.dumps(state["timeline"]))
     if mus:
         muse_drop(home)
+    elif cla:
+        claude_drop(home)
     elif sx:
         agy_drop(home)
     if agy and "blocked by Gemini's filters" in final:     # the provider cut the run off; not a model result
         state["fault"] = "provider safety filter ended the run"
-    if mus and ended == "finished" and not saw_done and not state.get("fault"):
+    if (mus or cla) and ended == "finished" and not saw_done and not state.get("fault"):
         state["fault"] = "CLI exited without a completed terminal event"   # crash after the usage event
     if shutil.disk_usage(out).free < 1 << 30:
         state["fault"] = state.get("fault") or "disk nearly full during the run"
@@ -685,8 +761,11 @@ def main():
         state["errors"].append("harness fault: " + state["fault"])
     if state.get("fault") or (ended == "finished" and not usage):
         # the CLI stopped without completing a turn: quota, auth or a crash. Not a model result; the batch retries it.
-        (out / "error.json").write_text(json.dumps({"returncode": proc.returncode, "errors": state["errors"][-5:],
-                                                    "seconds": round(time.time() - t0), "verifier_calls": state["n"]}, indent=1))
+        err_obj = {"returncode": proc.returncode, "errors": state["errors"][-5:],
+                   "seconds": round(time.time() - t0), "verifier_calls": state["n"]}
+        if state.get("rate_limit_resets_at"):
+            err_obj["rate_limit_resets_at"] = state["rate_limit_resets_at"]
+        (out / "error.json").write_text(json.dumps(err_obj, indent=1))
         print("HARNESS ERROR:", state["errors"][-1:] or proc.returncode)
         raise SystemExit(3)
     # keep what the agent wrote (its notes and scripts), not the files it was handed
@@ -710,6 +789,7 @@ def main():
               "attempt_log": log, "usage": usage, "shell_commands": commands, "cli_errors": state["errors"][-5:], "commands_touching_outside": outside,
               "final_message": final[-2000:],
               "harness": {"cli": "agy " + sh(str(pathlib.Path.home() / ".local/bin/agy"), "--version") if agy else
+                          "claude " + sh(str(pathlib.Path.home() / ".local/bin/claude"), "--version") if cla else
                           "cursor-agent " + sh(str(pathlib.Path.home() / ".local/bin/cursor-agent"), "--version") if cur else
                           sh(str(muse_bin), "--version") if mus else sh("codex", "--version"), "git": sh("git", "rev-parse", "--short", "HEAD"),
                           "git_dirty": bool(sh("git", "status", "--porcelain", "bench", "tasks")), "minecraft": "26.3 vanilla"}}

@@ -35,6 +35,8 @@ def tasks():
 
 
 def jobs():   # the quick settings first so the table fills in, then the slow ones task by task
+    if os.environ.get("RSB_ORDER") == "by_config":
+        return [(m, e, t) for m, e in CONFIGS for t in tasks()]
     fast = [c for c in CONFIGS if c[1] in ("minimal", "low", "medium", "high")]
     slow = [c for c in CONFIGS if c not in fast]
     return [(m, e, t) for t in tasks() for m, e in fast] + [(m, e, t) for t in tasks() for m, e in slow]
@@ -73,7 +75,7 @@ def kill_strays():
         try:
             pid = int(f.read_text())
             cmd = subprocess.run(["ps", "-o", "command=", "-p", str(pid)], capture_output=True, text=True).stdout
-            if ("bench/run.py" in cmd or "codex" in cmd or "agy" in cmd or "cursor-agent" in cmd or "muse exec" in cmd) and not (f.parent / "result.json").exists():
+            if ("bench/run.py" in cmd or "codex" in cmd or "agy" in cmd or "claude" in cmd or "cursor-agent" in cmd or "muse exec" in cmd) and not (f.parent / "result.json").exists():
                 os.killpg(pid, signal.SIGKILL)
         except (ValueError, ProcessLookupError, PermissionError, OSError):
             pass
@@ -182,11 +184,62 @@ def codex_maybe_claim_reset(threshold=99.0):
             return _LAST_LIMIT_RESULT
 
 
+_QUOTA_LOCK = threading.Lock()
+_LAST_AGY_CHECK = 0.0
+_LAST_AGY_OK = True
+
+
+def agy_quota_ok(min_frac=0.02):
+    """Check Gemini Models 5h & weekly remaining_fraction via `agy -p /quota`; cached 60s."""
+    global _LAST_AGY_CHECK, _LAST_AGY_OK
+    with _QUOTA_LOCK:
+        now = time.time()
+        if now - _LAST_AGY_CHECK < 60:
+            return _LAST_AGY_OK
+        _LAST_AGY_CHECK = now
+        try:
+            p = subprocess.run(
+                [str(pathlib.Path.home() / ".local/bin/agy"), "-p", "/quota", "--output-format", "json"],
+                capture_output=True, text=True, timeout=25, stdin=subprocess.DEVNULL,
+            )
+            data = json.loads(p.stdout)
+            groups = ((data.get("command") or {}).get("data") or {}).get("groups") or []
+            for g in groups:
+                if "gemini" in (g.get("name") or "").lower():
+                    for b in g.get("buckets") or []:
+                        frac = b.get("remaining_fraction")
+                        if frac is not None and float(frac) <= min_frac:
+                            _LAST_AGY_OK = False
+                            return False
+            _LAST_AGY_OK = True
+            return True
+        except Exception:
+            return _LAST_AGY_OK
+
+
+def wait_until_ok():
+    f = B / "wait_until"
+    if not f.exists():
+        return True
+    try:
+        until = float(f.read_text().strip())
+    except Exception:
+        return True
+    if time.time() < until:
+        return False
+    f.unlink(missing_ok=True)
+    return True
+
+
 def ready():
     """The judge must be up and the disk must have room, or a run would be wasted."""
     try:
         socket.create_connection(("127.0.0.1", 25592), timeout=5).close()
     except OSError:
+        return False
+    if not wait_until_ok():
+        return False
+    if os.environ.get("RSB_AGY_QUOTA") == "1" and not agy_quota_ok():
         return False
     if os.environ.get("RSB_CODEX_AUTO_CLAIM") == "1":
         st = codex_maybe_claim_reset(float(os.environ.get("RSB_CODEX_CLAIM_AT", "99")))
@@ -198,15 +251,32 @@ def ready():
     return shutil.disk_usage(ROOT).free > 3 << 30
 
 
+def _is_quota_error(err_path):
+    """Return (is_quota, resets_at_epoch_or_None) from a run's error.json."""
+    if not err_path.exists():
+        return False, None
+    try:
+        d = json.loads(err_path.read_text())
+    except Exception:
+        return False, None
+    resets = d.get("rate_limit_resets_at")
+    txt = " ".join(str(x) for x in (d.get("errors") or [])).lower()
+    if resets or any(w in txt for w in ("rate_limit", "rate limit", "hit your limit", "quota", "resource_exhausted", "429", "usage limit")):
+        return True, (float(resets) if resets else None)
+    return False, None
+
+
 def run_one(m, e, t, lock):
     name = f"{m}-{e}__{t}"
-    for attempt in range(1, RETRIES + 1):
+    attempt = 0
+    while attempt < RETRIES:
         if (rdir(m, e, t) / "result.json").exists():
             return
         while not ready():
-            (B / "waiting").write_text(time.strftime("%Y-%m-%dT%H:%M:%S") + " server down, disk full or Codex limit reserve reached\n")
-            time.sleep(30)
+            (B / "waiting").write_text(time.strftime("%Y-%m-%dT%H:%M:%S") + " server down, disk full or subscription quota paused\n")
+            time.sleep(60)
         (B / "waiting").unlink(missing_ok=True)
+        attempt += 1
         with open(B / "logs" / f"{name}.log", "a") as log:
             p = subprocess.Popen([sys.executable, str(ROOT / "bench/run.py"), "--task", t, "--model", m, "--effort", e,
                                   "--budget", str(BUDGET), "--minutes", str(MINUTES)],
@@ -219,6 +289,16 @@ def run_one(m, e, t, lock):
                 led.write(json.dumps({"time": time.strftime("%Y-%m-%dT%H:%M:%S"), "job": name, "try": attempt, "exit": code}) + "\n")
         if (rdir(m, e, t) / "result.json").exists():
             return
+        if code == 3 and (os.environ.get("RSB_CLAUDE_QUOTA") == "1" or os.environ.get("RSB_AGY_QUOTA") == "1"):
+            is_q, resets = _is_quota_error(rdir(m, e, t) / "error.json")
+            if is_q:
+                until = max((resets + 90) if resets else 0, time.time() + 600)
+                with lock:
+                    cur = float((B / "wait_until").read_text().strip()) if (B / "wait_until").exists() else 0
+                    if until > cur:
+                        (B / "wait_until").write_text(f"{int(until)}\n")
+                attempt -= 1    # quota pause never burns a retry or triggers gave_up
+                continue
         if attempt < RETRIES:
             time.sleep(600 if code == 3 else 30)     # quota or auth trouble: wait before trying again
     (B / "gave_up" / name).write_text(time.strftime("%Y-%m-%dT%H:%M:%S"))
