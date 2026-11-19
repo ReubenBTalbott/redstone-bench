@@ -217,6 +217,30 @@ def agy_quota_ok(min_frac=0.02):
             return _LAST_AGY_OK
 
 
+_LAST_OC_CHECK = 0.0
+_LAST_OC_OK = True
+
+
+def opencode_quota_ok():
+    """OpenCode Go's rolling, weekly and monthly usage from the CLI's own limits endpoint; cached 60s. A new run only
+    starts below RSB_OPENCODE_STOP percent (default 80) in every window, so runs already going can finish inside the cap."""
+    global _LAST_OC_CHECK, _LAST_OC_OK
+    with _QUOTA_LOCK:
+        if time.time() - _LAST_OC_CHECK < 60:
+            return _LAST_OC_OK
+        _LAST_OC_CHECK = time.time()
+        try:
+            p = subprocess.run(["opencode", "api", "GET", "/api/experimental/usage/limits"],
+                               capture_output=True, text=True, timeout=60, stdin=subprocess.DEVNULL)
+            go = (json.loads(p.stdout).get("data") or {}).get("go") or {}
+            stop = float(os.environ.get("RSB_OPENCODE_STOP", "80"))
+            _LAST_OC_OK = bool(go) and not any(w.get("limited") or float(w.get("percent") or 0) >= stop for w in go.values())
+            (B / "opencode_usage.json").write_text(json.dumps({"time": time.strftime("%Y-%m-%dT%H:%M:%S"), "go": go}))
+        except Exception:
+            pass
+        return _LAST_OC_OK
+
+
 def wait_until_ok():
     f = B / "wait_until"
     if not f.exists():
@@ -240,6 +264,8 @@ def ready():
     if not wait_until_ok():
         return False
     if os.environ.get("RSB_AGY_QUOTA") == "1" and not agy_quota_ok():
+        return False
+    if os.environ.get("RSB_OPENCODE_QUOTA") == "1" and not opencode_quota_ok():
         return False
     if os.environ.get("RSB_CODEX_AUTO_CLAIM") == "1":
         st = codex_maybe_claim_reset(float(os.environ.get("RSB_CODEX_CLAIM_AT", "99")))
