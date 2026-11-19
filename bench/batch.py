@@ -96,13 +96,103 @@ def codex_week_used():
     return None
 
 
+_CLAIM_LOCK = threading.Lock()
+_LAST_LIMIT_CHECK = 0.0
+_LAST_LIMIT_RESULT = None
+
+
+def _codex_app_server_call(calls):
+    """Run one or more JSON-RPC calls against `codex app-server` stdio and return their responses."""
+    p = subprocess.Popen(
+        ["codex", "app-server"],
+        stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True,
+    )
+    try:
+        def rpc(req_id, method, params=None):
+            req = {"id": req_id, "method": method}
+            if params is not None:
+                req["params"] = params
+            p.stdin.write(json.dumps(req) + "\n")
+            p.stdin.flush()
+            for line in p.stdout:
+                try:
+                    msg = json.loads(line)
+                except ValueError:
+                    continue
+                if msg.get("id") == req_id:
+                    return msg
+            raise RuntimeError("codex app-server closed before reply")
+
+        rpc(1, "initialize", {"clientInfo": {"name": "redstone-bench", "version": "1"}})
+        p.stdin.write('{"method":"initialized"}\n')
+        p.stdin.flush()
+        out = []
+        for idx, (method, params) in enumerate(calls, start=2):
+            out.append(rpc(idx, method, params))
+        return out
+    finally:
+        try:
+            p.terminate()
+            p.wait(timeout=5)
+        except Exception:
+            try:
+                p.kill()
+            except Exception:
+                pass
+
+
+def codex_maybe_claim_reset(threshold=99.0):
+    """Read live Codex limits; if >= threshold% used (i.e. <1% left) or blocked, claim the earliest-expiring banked reset."""
+    global _LAST_LIMIT_CHECK, _LAST_LIMIT_RESULT
+    with _CLAIM_LOCK:
+        now = time.time()
+        if now - _LAST_LIMIT_CHECK < 20 and _LAST_LIMIT_RESULT is not None:
+            return _LAST_LIMIT_RESULT
+        _LAST_LIMIT_CHECK = now
+        try:
+            [res] = _codex_app_server_call([("account/rateLimits/read", {})])
+            data = res.get("result") or {}
+            primary = (data.get("rateLimits") or {}).get("primary") or {}
+            used = primary.get("usedPercent")
+            allowed = data.get("ordinaryUsageAllowed", True)
+            reached = (data.get("rateLimits") or {}).get("rateLimitReachedType")
+            credits = [
+                c for c in ((data.get("rateLimitResetCredits") or {}).get("credits") or [])
+                if c.get("status") == "available" and c.get("id")
+            ]
+            depleted = (used is not None and float(used) >= threshold) or (not allowed) or bool(reached)
+            if depleted:
+                if not credits:
+                    _LAST_LIMIT_RESULT = {"used": used, "allowed": allowed, "depleted": True, "claimed": False, "reason": "no_credits"}
+                    return _LAST_LIMIT_RESULT
+                credits.sort(key=lambda c: c.get("expiresAt") or float("inf"))
+                chosen = credits[0]
+                cid = chosen["id"]
+                [claim] = _codex_app_server_call([(
+                    "account/rateLimitResetCredit/consume",
+                    {"creditId": cid, "idempotencyKey": f"rsb-auto-{cid}"},
+                )])
+                ok = (claim.get("result") or {}).get("outcome") == "reset"
+                _LAST_LIMIT_RESULT = {"used": 0 if ok else used, "allowed": True if ok else allowed, "depleted": not ok, "claimed": ok, "creditId": cid, "result": claim.get("result"), "error": claim.get("error")}
+                return _LAST_LIMIT_RESULT
+            _LAST_LIMIT_RESULT = {"used": used, "allowed": allowed, "depleted": False, "claimed": False}
+            return _LAST_LIMIT_RESULT
+        except Exception as exc:
+            _LAST_LIMIT_RESULT = {"error": str(exc), "depleted": False}
+            return _LAST_LIMIT_RESULT
+
+
 def ready():
     """The judge must be up and the disk must have room, or a run would be wasted."""
     try:
         socket.create_connection(("127.0.0.1", 25592), timeout=5).close()
     except OSError:
         return False
-    stop = os.environ.get("RSB_CODEX_STOP")        # leave the rest of the weekly limit for other Codex work
+    if os.environ.get("RSB_CODEX_AUTO_CLAIM") == "1":
+        st = codex_maybe_claim_reset(float(os.environ.get("RSB_CODEX_CLAIM_AT", "99")))
+        if st and st.get("depleted") and not st.get("claimed"):
+            return False
+    stop = os.environ.get("RSB_CODEX_STOP")        # optional reserve for other Codex work
     if stop and (codex_week_used() or 0) >= float(stop):
         return False
     return shutil.disk_usage(ROOT).free > 3 << 30

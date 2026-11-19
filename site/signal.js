@@ -50,13 +50,18 @@ window.RSBSignal = (() => {
         live = next;
       },
       /** Draws one frame; true while something is still easing to its new level. */
-      draw(view, proj, now) {
+      draw(view, proj, now, lay) {
         const dt = Math.min(80, now - (last || now)); last = now;
         const ease = 1 - Math.exp(-dt / 55), v = []; let moving = false;
+        const exp = lay && lay.explode ? lay.explode : 0;
+        const smax = lay && lay.sliceMax != null ? lay.sliceMax : Infinity;
+        const midY = lay && lay.height ? (lay.height - 1) / 2 : 0;
         for (const c of live.values()) {
           c.glow += (c.level - c.glow) * ease;
           if (Math.abs(c.level - c.glow) > 0.01) moving = true; else c.glow = c.level;
-          const s = c.shape, o = [c.at[0] + 0.5, c.at[1] + s.cy, c.at[2] + 0.5];
+          if (c.at[1] >= smax) continue;
+          const yShift = exp ? (c.at[1] - midY) * exp * 1.15 : 0;
+          const s = c.shape, o = [c.at[0] + 0.5, c.at[1] + yShift + s.cy, c.at[2] + 0.5];
           const corner = (i) => [o[0] + (i & 4 ? -s.x : s.x), o[1] + (i & 2 ? -s.y : s.y), o[2] + (i & 1 ? -s.z : s.z)];
           for (const [p, q, r, t] of CORNERS) for (const [i, u, w] of [[p, 0, 0], [q, 1, 0], [r, 0, 1], [r, 0, 1], [q, 1, 0], [t, 1, 1]]) v.push(...corner(i), u, w, c.glow, c.tone);
         }

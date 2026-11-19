@@ -225,13 +225,179 @@
     }
     return out;
   }
-  let signalOn = false;
-  $("signal").onclick = () => { signalOn = !signalOn; $("signal").setAttribute("aria-pressed", signalOn); $("dv").closest(".view").classList.toggle("signal", signalOn); v?.signal(signalOn); };
+  let signalOn = false, layersOn = false, compareOn = false;
+  let explodeVal = 0, sliceVal = null, v2 = null, cmpAnim = null, cmpBuild = null, curBuild = null, cmpToken = 0, syncingCam = false;
+  const CAM_PRESETS = { iso: { yaw: 0.65, pitch: 0.5, zoom: 1 }, top: { yaw: 0, pitch: 1.48, zoom: 1.05 }, side: { yaw: 0, pitch: 0.08, zoom: 1 } };
+
+  function syncCamFrom(src, dst, c) {
+    if (syncingCam || !dst) return;
+    syncingCam = true;
+    dst.cam(c);
+    syncingCam = false;
+  }
+
+  function applyLayerControls() {
+    const exp = layersOn ? explodeVal : 0;
+    const h1 = v ? v.height() : 1, h2 = v2 && compareOn ? v2.height() : 1;
+    const maxH = Math.max(1, h1, h2);
+    const sl = $("sliceSlider");
+    sl.max = String(maxH);
+    const curS = sliceVal == null ? maxH : Math.min(maxH, Math.max(1, sliceVal));
+    sl.value = String(curS);
+    $("sliceVal").textContent = !layersOn || curS >= maxH ? `All (${maxH})` : `Y ≤ ${curS}/${maxH}`;
+    $("expSlider").value = String(exp);
+    $("expVal").textContent = `${Math.round(exp * 100)}%`;
+    const effSlice = layersOn && curS < maxH ? curS : null;
+    v?.explode(exp); v?.slice(effSlice);
+    v2?.explode(exp); v2?.slice(effSlice);
+  }
+
+  $("signal").onclick = () => {
+    signalOn = !signalOn;
+    $("signal").setAttribute("aria-pressed", signalOn);
+    $("viewRoot").classList.toggle("signal", signalOn);
+    v?.signal(signalOn); v2?.signal(signalOn);
+  };
+
+  $("layersBtn").onclick = () => {
+    layersOn = !layersOn;
+    $("layersBtn").setAttribute("aria-pressed", layersOn);
+    $("layersTray").hidden = !layersOn;
+    if (layersOn && explodeVal === 0) explodeVal = 0.55;
+    if (!layersOn) { explodeVal = 0; sliceVal = null; }
+    applyLayerControls();
+  };
+
+  $("expSlider").oninput = (e) => { explodeVal = +e.target.value; applyLayerControls(); };
+  $("sliceSlider").oninput = (e) => {
+    const maxH = +$("sliceSlider").max, val = +e.target.value;
+    sliceVal = val >= maxH ? null : val;
+    applyLayerControls();
+  };
+  $("layersReset").onclick = () => {
+    explodeVal = 0; sliceVal = null;
+    applyLayerControls();
+    v?.camTo(CAM_PRESETS.iso);
+    if (compareOn) v2?.camTo(CAM_PRESETS.iso);
+  };
+  $("layersTray").querySelectorAll("[data-cam]").forEach((b) => {
+    b.onclick = () => {
+      const p = CAM_PRESETS[b.dataset.cam];
+      v?.camTo(p);
+      if (compareOn) v2?.camTo(p);
+    };
+  });
+
+  function compareCandidates(tid) {
+    const out = [];
+    const curId = cur.sel?.run ? `${cur.sel.run.id}/${cur.version ?? cur.sel.run.best}` : cur.sel?.other ? cur.sel.other.id : null;
+    const working = runsFor(tid).filter((r) => r.volume && r.best).sort((a, b) => a.volume - b.volume || a.ticks - b.ticks);
+    for (const r of working) {
+      const id = `${r.id}/${r.best}`;
+      if (id === curId) continue;
+      out.push({ id, label: `${cfgName(cfg[r.config])} (${r.volume} blk)`, run: r, model: cfg[r.config]?.model, volume: r.volume });
+    }
+    for (const o of othersFor(tid)) {
+      if (o.id === curId) continue;
+      out.push({ id: o.id, label: `${o.source} (${o.volume} blk)`, other: o, model: `other:${o.source}`, volume: o.volume });
+    }
+    return out;
+  }
+
+  function pickDefaultCompare(cands) {
+    if (!cands.length) return "";
+    const curModel = cur.sel?.run ? cfg[cur.sel.run.config]?.model : cur.sel?.other ? `other:${cur.sel.other.source}` : null;
+    const curVol = curBuild?.volume ?? cur.sel?.run?.volume ?? cur.sel?.other?.volume ?? null;
+    const pick =
+      cands.find((c) => c.model !== curModel && curVol != null && c.volume !== curVol) ||
+      cands.find((c) => c.model !== curModel) ||
+      cands.find((c) => curVol != null && c.volume !== curVol) ||
+      cands[0];
+    return pick.id;
+  }
+
+  function updateCmpDelta() {
+    const dEl = $("cmpDelta");
+    if (!compareOn || !curBuild || !cmpBuild) { dEl.textContent = ""; dEl.className = "cmp-delta"; return; }
+    const a = curBuild.volume, b = cmpBuild.volume;
+    if (a === b) { dEl.textContent = `Same volume (${a})`; dEl.className = "cmp-delta"; }
+    else if (a < b) { dEl.textContent = `${a} vs ${b} · ${Math.round(((b - a) / b) * 100)}% smaller`; dEl.className = "cmp-delta better"; }
+    else { dEl.textContent = `${a} vs ${b} · ${Math.round(((a - b) / b) * 100)}% larger`; dEl.className = "cmp-delta worse"; }
+  }
+
+  async function loadCompare(candId) {
+    const my = ++cmpToken;
+    cmpAnim = null; cmpBuild = null;
+    $("cap2").replaceChildren();
+    if (!compareOn || !candId) return;
+    const b = await load(candId);
+    if (my !== cmpToken || !compareOn) return;
+    cmpBuild = b;
+    const pick = $("cmpPick");
+    const opt = pick.options[pick.selectedIndex];
+    const lbl = opt ? opt.textContent.replace(/\s*\(\d+\s*blk\)$/, "") : candId;
+    $("cap2").append(el("b", {}, lbl), `: volume ${b.volume}, ${b.dims.join(" × ")}, ${b.ticks} ticks`);
+    const initBlocks = b.frames ? (cmpAnim = { frames: expand(b.frames), bounds: b.bounds }).frames[0].map : b.states[sortStates(Object.keys(b.states))[0]];
+    if (v2) {
+      await v2.set(initBlocks, b.bounds);
+    } else {
+      const initCam = v ? v.getCam() : CAM_PRESETS.iso;
+      v2 = RSB.viewer($("dv2"), initBlocks, {
+        wheel: true, bounds: b.bounds, signal: signalOn,
+        yaw: initCam.yaw, pitch: initCam.pitch, zoom: initCam.zoom,
+        onCam: (c) => syncCamFrom(v2, v, c),
+      });
+      await v2.ready;
+    }
+    v2.signal(signalOn);
+    applyLayerControls();
+    updateCmpDelta();
+  }
+
+  function refreshComparePicker() {
+    const cands = cur.tid ? compareCandidates(cur.tid) : [];
+    const btn = $("compareBtn");
+    btn.disabled = !cands.length;
+    if (!cands.length && compareOn) {
+      compareOn = false;
+      btn.setAttribute("aria-pressed", "false");
+      $("viewRoot").classList.remove("comparing");
+      $("cmpPane").hidden = true;
+      return;
+    }
+    const sel = $("cmpPick");
+    const prev = sel.value;
+    sel.replaceChildren(...cands.map((c) => new Option(c.label, c.id)));
+    if (cands.some((c) => c.id === prev)) sel.value = prev;
+    else sel.value = pickDefaultCompare(cands);
+    if (compareOn && sel.value) loadCompare(sel.value);
+  }
+
+  $("compareBtn").onclick = () => {
+    compareOn = !compareOn;
+    $("compareBtn").setAttribute("aria-pressed", compareOn);
+    $("viewRoot").classList.toggle("comparing", compareOn);
+    $("cmpPane").hidden = !compareOn;
+    if (compareOn) {
+      refreshComparePicker();
+    } else {
+      cmpAnim = null; cmpBuild = null;
+      applyLayerControls();
+    }
+    v?.redraw();
+  };
+  $("cmpPick").onchange = () => { if (compareOn) loadCompare($("cmpPick").value); };
+
   function stop() { if (anim) { clearTimeout(anim.timer); anim.playing = false; } setPlay(); }
   function setPlay() { $("play").textContent = anim?.playing ? "Pause" : anim && anim.i > 0 && anim.i >= anim.end ? "Replay" : "Play"; }
   function frame(i) {
     const f = anim.frames[i]; anim.i = i;
     v.set(f.map, anim.bounds);
+    if (compareOn && v2 && cmpAnim && cmpAnim.frames.length) {
+      const ratio = anim.frames.length > 1 ? i / (anim.frames.length - 1) : 0;
+      const j = Math.min(cmpAnim.frames.length - 1, Math.round(ratio * (cmpAnim.frames.length - 1)));
+      v2.set(cmpAnim.frames[j].map, cmpAnim.bounds);
+    }
     $("scrub").value = i; $("tick").textContent = `tick ${f.tick}`;
     if (f.event) { $("toast").textContent = f.event; $("toast").classList.add("on"); clearTimeout(anim.tt); anim.tt = setTimeout(() => $("toast").classList.remove("on"), 1200); }
   }
@@ -252,16 +418,17 @@
 
   async function show(run, n, other) {
     const my = ++token;
-    stop(); anim = null;
+    stop(); anim = null; curBuild = null;
     cur.version = n;
     const has = (run && n) || other;
     $("empty").style.display = has ? "none" : "grid"; $("dv").style.visibility = has ? "" : "hidden";
     $("seg").replaceChildren(); $("player").hidden = true; $("cap").replaceChildren();
-    if (!has) { if (run) $("cap").append(el("b", {}, cfgName(cfg[run.config])), run.calls ? " never got a working build." : " stopped without trying a build."); return; }
+    if (!has) { if (run) $("cap").append(el("b", {}, cfgName(cfg[run.config])), run.calls ? " never got a working build." : " stopped without trying a build."); refreshComparePicker(); return; }
     const b = await load(other ? other.id : `${run.id}/${n}`);
     if (my !== token) return;
+    curBuild = b;
     const ss = sortStates(Object.keys(b.states));
-    const draw = (blocks) => (v ? v.set(blocks, b.bounds) : (v = RSB.viewer($("dv"), blocks, { wheel: true, bounds: b.bounds, signal: signalOn })));
+    const draw = (blocks) => (v ? v.set(blocks, b.bounds) : (v = RSB.viewer($("dv"), blocks, { wheel: true, bounds: b.bounds, signal: signalOn, onCam: (c) => syncCamFrom(v, v2, c) })));
     $("cap").append(el("b", {}, other ? other.source : cfgName(cfg[run.config])),
       other ? `, volume ${b.volume}` : `, try ${n}${n === run.best ? " (its best)" : ""}: volume ${b.volume}, ${b.dims.join(" × ")}, ${b.ticks} ticks`);
     if (b.frames) {
@@ -281,6 +448,10 @@
       if (ss.length > 1) ss.forEach((s) => $("seg").append(el("button", { "data-s": s, onclick: () => pick(s) }, STATE_LABEL[s])));
       pick(ss[0]);
     }
+    sliceVal = null;
+    applyLayerControls();
+    refreshComparePicker();
+    updateCmpDelta();
     chart();
   }
 

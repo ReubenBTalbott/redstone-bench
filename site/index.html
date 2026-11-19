@@ -61,19 +61,49 @@
 <dialog id="dlg" aria-labelledby="xt">
   <button class="x" aria-label="Close">×</button>
   <div class="sheet">
-    <div class="view">
-      <canvas id="dv"></canvas>
-      <div class="empty" id="empty">No working build to show</div>
-      <div class="cap" id="cap"></div>
+    <div class="view" id="viewRoot">
+      <div class="stage-grid">
+        <div class="stage-pane main-pane">
+          <canvas id="dv"></canvas>
+          <div class="empty" id="empty">No working build to show</div>
+          <div class="cap" id="cap"></div>
+        </div>
+        <div class="stage-pane cmp-pane" id="cmpPane" hidden>
+          <canvas id="dv2"></canvas>
+          <div class="cmp-overlay">
+            <div class="cmp-head">
+              <select id="cmpPick" aria-label="Compare with another build"></select>
+              <span class="cmp-delta" id="cmpDelta"></span>
+            </div>
+            <div class="cap cmp-cap" id="cap2"></div>
+          </div>
+        </div>
+      </div>
       <div class="toast" id="toast"></div>
-      <div class="controls">
-        <div class="seg" id="seg"></div>
-        <div class="seg"><button id="signal" type="button" aria-pressed="false">Signal</button></div>
-        <div class="player" id="player" hidden>
-          <button id="play" class="playbtn"></button>
-          <input id="scrub" type="range" min="0" max="1" value="0" aria-label="Tick">
-          <span id="tick" class="tick"></span>
-          <select id="speed" aria-label="Speed"><option value="1">Game speed</option><option value="0.5" selected>Half speed</option><option value="0.2">Slow</option></select>
+      <div class="dock">
+        <div class="layers-tray" id="layersTray" hidden>
+          <label class="lt-ctl"><span>Explode</span><input id="expSlider" type="range" min="0" max="1" step="0.01" value="0"><output id="expVal">0%</output></label>
+          <label class="lt-ctl"><span>Slice Y</span><input id="sliceSlider" type="range" min="1" max="1" step="1" value="1"><output id="sliceVal">All</output></label>
+          <div class="lt-presets" role="group" aria-label="Camera presets">
+            <button type="button" data-cam="iso">Iso</button>
+            <button type="button" data-cam="top">Top</button>
+            <button type="button" data-cam="side">Side</button>
+            <button type="button" id="layersReset">Reset</button>
+          </div>
+        </div>
+        <div class="controls">
+          <div class="seg" id="seg"></div>
+          <div class="seg">
+            <button id="signal" type="button" aria-pressed="false">Signal</button>
+            <button id="layersBtn" type="button" aria-pressed="false">Layers</button>
+            <button id="compareBtn" type="button" aria-pressed="false">Compare</button>
+          </div>
+          <div class="player" id="player" hidden>
+            <button id="play" class="playbtn"></button>
+            <input id="scrub" type="range" min="0" max="1" value="0" aria-label="Tick">
+            <span id="tick" class="tick"></span>
+            <select id="speed" aria-label="Playback speed" title="Playback speed"><option value="1">1×</option><option value="0.5" selected>0.5×</option><option value="0.2">0.2×</option></select>
+          </div>
         </div>
       </div>
     </div>
