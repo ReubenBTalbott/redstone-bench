@@ -75,7 +75,7 @@ def kill_strays():
         try:
             pid = int(f.read_text())
             cmd = subprocess.run(["ps", "-o", "command=", "-p", str(pid)], capture_output=True, text=True).stdout
-            if ("bench/run.py" in cmd or "codex" in cmd or "agy" in cmd or "claude" in cmd or "cursor-agent" in cmd or "muse exec" in cmd) and not (f.parent / "result.json").exists():
+            if ("bench/run.py" in cmd or "codex" in cmd or "agy" in cmd or "claude" in cmd or "cursor-agent" in cmd or "muse exec" in cmd or "opencode" in cmd) and not (f.parent / "result.json").exists():
                 os.killpg(pid, signal.SIGKILL)
         except (ValueError, ProcessLookupError, PermissionError, OSError):
             pass
@@ -289,7 +289,7 @@ def run_one(m, e, t, lock):
                 led.write(json.dumps({"time": time.strftime("%Y-%m-%dT%H:%M:%S"), "job": name, "try": attempt, "exit": code}) + "\n")
         if (rdir(m, e, t) / "result.json").exists():
             return
-        if code == 3 and (os.environ.get("RSB_CLAUDE_QUOTA") == "1" or os.environ.get("RSB_AGY_QUOTA") == "1"):
+        if code == 3 and any(os.environ.get(f"RSB_{v}_QUOTA") == "1" for v in ("CLAUDE", "AGY", "OPENCODE")):
             is_q, resets = _is_quota_error(rdir(m, e, t) / "error.json")
             if is_q:
                 until = max((resets + 90) if resets else 0, time.time() + 600)
