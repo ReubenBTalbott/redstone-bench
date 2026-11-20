@@ -24,8 +24,9 @@ MODELS = {"sol62": "gpt-6.2-sol", "astra62": "gpt-6.2-astra",
           "sol": "gpt-6.1-sol", "terra": "gpt-6.1-terra", "astra": "gpt-6-astra", "luna": "gpt-6-luna",
           "neon": "gemini-4-neon", "carbon": "gemini-4-carbon", "opus55": "claude-opus-5-5", "grok": "grok-4.7",
           "wonder-full": "muse-wonder-full-1.0", "wonder": "muse-wonder-1.0", "ember": "muse-ember-1.0",
-          "spark13": "muse-spark-1.3", "spark12": "muse-spark-1.2", "glm53": "opencode-go/glm-5.3"}
-OPENCODE = {"glm53"}                    # these run through the opencode CLI (opencode run) on the OpenCode Go subscription
+          "spark13": "muse-spark-1.3", "spark12": "muse-spark-1.2", "glm53": "opencode-go/glm-5.3",
+          "dsflash41": "opencode-go/deepseek-v4.1-flash"}
+OPENCODE = {"glm53", "dsflash41"}                    # these run through the opencode CLI (opencode run) on the OpenCode Go subscription
 AGY = {"carbon", "neon"}              # these run through the Antigravity CLI (agy) instead of Codex
 CLAUDE = {"opus55"}                     # these run through the Claude Code CLI (claude) on Max subscription
 CURSOR = {"grok"}                      # these run through the Cursor CLI (cursor-agent)
