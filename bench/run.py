@@ -175,6 +175,20 @@ def opencode_setup(tag, ws):
     home = AGY_HOMES / tag
     shutil.rmtree(home, ignore_errors=True)
     home, prof = agy_setup(tag, ws, links=[])
+    # opencode needs no Keychain, so unlike the shared profile it gets no ~/Library and only the mise installs from
+    # ~/.local (DeepSeek runs went looking for a Minecraft launcher there and ran private servers from its files)
+    (home / "Library").unlink(missing_ok=True)
+    real = pathlib.Path.home()
+    shared = '(subpath "/private/tmp") (subpath "/private/var/folders")'
+    prof.write_text(f'''(version 1)
+(allow default)
+(deny file-read* (subpath "{real}") {shared})
+(allow file-read-metadata (subpath "{real}") {shared})
+(allow file-read* (subpath "{real}/.local/share/mise") (subpath "{real}/.local/bin") (subpath "{home}") (subpath "{ws}"))
+(deny file-write* (subpath "{real}") {shared})
+(allow file-read* file-write* (regex #"^/private/var/folders/[^/]+/[^/]+/T/xcrun_db"))
+(allow file-write* (subpath "{home}") (subpath "{ws}"))
+''')
     data = home / ".local/share/opencode"
     data.mkdir(parents=True, exist_ok=True)
     src = sqlite3.connect(f"file:{pathlib.Path.home() / '.local/share/opencode/opencode.db'}?mode=ro", uri=True)
